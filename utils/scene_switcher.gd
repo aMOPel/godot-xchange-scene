@@ -9,7 +9,7 @@ extends Node
 # scenes can be: 
 # ACTIVE active/free (deleted from memory) 
 # HIDDEN visible/hidden (still in memory and running)
-# STOPPED removed from/attached to the tree (still in memory but not running)
+# STOPPED attached to/removed from the tree (still in memory but not running)
 # @count is a self incrementing counter for when adding scenes without providing a name string
 # @path contains the path to the scene below which scenes will be manipulated
 # @scenes dict with int or string as keys and Nodes as values. 
