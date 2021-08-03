@@ -34,9 +34,9 @@ onready var local_root := get_node(path)
 var flag_sync: bool
 
 
-func _init(p: NodePath, syncronize := false):
+func _init(p: NodePath, synchronize := false):
 	path = p
-	flag_sync = syncronize
+	flag_sync = synchronize
 
 
 func _ready():
@@ -88,7 +88,9 @@ func get_scenes() -> Dictionary:
 	return _scenes
 
 
-func add_scene(scene: PackedScene, method := ACTIVE, key = count):
+func add_scene(
+	scene: PackedScene, method := ACTIVE, key = count, deferred := false
+):
 	assert(key is int or key is String, "add_scene: key must be int or String")
 	assert(
 		ACTIVE <= method and method <= STOPPED,
@@ -100,14 +102,20 @@ func add_scene(scene: PackedScene, method := ACTIVE, key = count):
 	match method:
 		ACTIVE:
 			_active_scenes.push_back(key)
-			local_root.call_deferred("add_child", "s")
+			if deferred:
+				local_root.call_deferred("add_child", "s")
+			else:
+				local_root.add_child(s)
 		HIDDEN:
 			assert(
 				s is CanvasItem,
 				"add_scene: scene must inherit from CanvasItem to be hidden"
 			)
 			_hidden_scenes.push_back(key)
-			local_root.call_deferred("add_child", "s")
+			if deferred:
+				local_root.call_deferred("add_child", "s")
+			else:
+				local_root.add_child(s)
 			s.hide()
 		STOPPED:
 			_stopped_scenes.push_back(key)
@@ -118,7 +126,7 @@ func add_scene(scene: PackedScene, method := ACTIVE, key = count):
 		count += 1
 
 
-func show_scene(key = count):
+func show_scene(key = count, deferred := false):
 	assert(key in _scenes, "show_scene: key not in _scenes")
 	assert(! (key in _active_scenes), "show_scene: scene already visible")
 
@@ -131,12 +139,15 @@ func show_scene(key = count):
 			_scenes[key].show()
 			_hidden_scenes.erase(key)
 		elif key in _stopped_scenes:
-			local_root.call_deferred("add_child", "s")
+			if deferred:
+				local_root.call_deferred("add_child", _scenes[key])
+			else:
+				local_root.add_child(_scenes[key])
 			_stopped_scenes.erase(key)
 		_active_scenes.push_back(key)
 
 
-func remove_scene(key = count, method := ACTIVE):
+func remove_scene(key = count, method := ACTIVE, deferred := false):
 	assert(key in _scenes, "remove_scene: key not in _scenes")
 	assert(
 		ACTIVE <= method and method <= STOPPED,
@@ -153,7 +164,10 @@ func remove_scene(key = count, method := ACTIVE):
 
 		match method:
 			ACTIVE:
-				_scenes[key].call_deferred("free")
+				if deferred:
+					_scenes[key].queue_free()
+				else:
+					_scenes[key].free()
 				_scenes.erase(key)
 			HIDDEN:
 				assert(
@@ -163,12 +177,16 @@ func remove_scene(key = count, method := ACTIVE):
 				_scenes[key].hide()
 				_hidden_scenes.push_back(key)
 			STOPPED:
-				local_root.call_deferred("remove_child", _scenes[key])
+				if deferred:
+					local_root.call_deferred("remove_child", _scenes[key])
+				else:
+					local_root.remove_child(_scenes[key])
 				_stopped_scenes.push_back(key)
 
 
-func switch_scene(key_to, key_from = _active_scenes[-1], method1 := ACTIVE):
-	assert(key_from in _active_scenes, "switch_scene: scene_from not active")
+func switch_scene(
+	key_to, key_from = null, method_from := ACTIVE, deferred := false
+):
 	assert(
 		! (key_to in _active_scenes), "switch_scene: scene_to already active"
 	)
@@ -177,12 +195,19 @@ func switch_scene(key_to, key_from = _active_scenes[-1], method1 := ACTIVE):
 		"switch_scene: scene2 is neither hidden nor stopped"
 	)
 	assert(
-		ACTIVE <= method1 and method1 <= STOPPED,
+		ACTIVE <= method_from and method_from <= STOPPED,
 		"switch_scene: invalid method value"
 	)
+	if key_from == null:
+		assert(_active_scenes.size() > 0, "switch_scene: no active scene")
+		key_from = _active_scenes[-1]
+	else:
+		assert(
+			key_from in _active_scenes, "switch_scene: scene_from not active"
+		)
 
-	remove_scene(key_from, method1)
-	show_scene(key_to)
+	remove_scene(key_from, method_from, deferred)
+	show_scene(key_to, deferred)
 
 
 func switch_new_scene(
@@ -190,7 +215,8 @@ func switch_new_scene(
 	key_to = count,
 	key_from := _active_scenes[-1],
 	method_to := ACTIVE,
-	method_from := ACTIVE
+	method_from := ACTIVE,
+	deferred := false
 ):
 	assert(key_from in _active_scenes, "switch_scene: scene1 not active")
 	assert(
@@ -202,8 +228,8 @@ func switch_new_scene(
 		"switch_scene: invalid method value"
 	)
 
-	add_scene(scene_to, method_to, key_to)
-	remove_scene(key_from, method_from)
+	add_scene(scene_to, method_to, key_to, deferred)
+	remove_scene(key_from, method_from, deferred)
 
 
 func _check_scenes():
@@ -218,6 +244,14 @@ func _check_scene(key) -> bool:
 		is_instance_valid(_scenes[key])
 		and not _scenes[key].is_queued_for_deletion()
 	):
+		if _scenes[key] is CanvasItem:
+			if _scenes[key].visible and key in _hidden_scenes:
+				_active_scenes.push_back(key)
+				_hidden_scenes.erase(key)
+			elif !_scenes[key].visible and key in _active_scenes:
+				_hidden_scenes.push_back(key)
+				_active_scenes.erase(key)
+
 		return true
 	else:
 		_scenes.erase(key)
@@ -274,8 +308,8 @@ func _to_string():
 	s += "count: " + count as String + "\n"
 	s += "path: " + path as String + "\n"
 	s += local_root.get_children() as String + "\n"
-	get_node("/root").print_stray_nodes()
-	get_node("/root").print_tree_pretty()
+	# get_node("/root").print_stray_nodes()
+	# get_node("/root").print_tree_pretty()
 	return s
 
 #get_tree() tree_changed to sync

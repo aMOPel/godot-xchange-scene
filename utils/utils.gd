@@ -6,7 +6,7 @@ extends Node
 var scene_switcher = load("utils/scene_switcher.gd")
 
 
-func get_scene_switcher(path: NodePath):
-	var sw = scene_switcher.new(path)
+func get_scene_switcher(path: NodePath, synchronize:= false):
+	var sw = scene_switcher.new(path, synchronize)
 	add_child(sw)
 	return sw

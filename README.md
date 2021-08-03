@@ -1,5 +1,7 @@
 # godot-scene-switcher
 
+Godot version 3.3.2.stable.official
+
 __THIS REPO ISN'T IN A GODOT PLUGIN FORMAT__
 
 Inspired by [this part of the godot 
