@@ -233,14 +233,16 @@ func _check_scene(key) -> bool:
 
 func _on_node_added(node: Node):
 	if node.get_parent() == local_root:
-		if ! (node in _scenes):
-			_scenes[count] = node
-			if node is CanvasItem:
-				if node.visible:
-					_active_scenes.push_back(count)
-				else:
-					_hidden_scenes.push_back(count)
-			count += 1
+		for k in _scenes:
+			if _scenes[k] == node:
+				return
+		_scenes[count] = node
+		if node is CanvasItem:
+			if node.visible:
+				_active_scenes.push_back(count)
+			else:
+				_hidden_scenes.push_back(count)
+		count += 1
 
 
 func _on_node_removed(node: Node):
