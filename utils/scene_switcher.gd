@@ -3,6 +3,7 @@ class_name SceneSwitcher
 extends Node
 
 # high level interface to switch scenes
+#
 # is instanced by the Utils Autoload script with Utils.get_scene_switcher(path)
 # takes an absolute NodePath and can manipulate scenes under it
 # can add/remove/show scenes and keeps track of different states of scenes
@@ -10,15 +11,44 @@ extends Node
 # ACTIVE active/free (deleted from memory) 
 # HIDDEN visible/hidden (still in memory and running)
 # STOPPED attached to/removed from the tree (still in memory but not running)
+#
+# Members:
 # @count is a self incrementing counter for when adding scenes without providing a name string
 # @path contains the path to the scene below which scenes will be manipulated
+# @local_root is the dereferenced @path
 # @_scenes dict with int or string as keys and Nodes as values. 
 # Holds all scenes below @path regardless of state. 
 # However a freed scene will be removed from scenes.
 # @_active_scenes , @_hidden_scenes , @_stopped_scenes
 # hold keys of _scenes kept track of respectively to state of scenes
-# @flag_sync if true every tree change will be reflected in the _scenes dictionary,
-# this might be very slow when many nodes are added to the tree in general
+# @flag_sync if true every tree addition will be reflected in the _scenes dictionary.
+# This might be very slow when many nodes are added to anywhere in the tree externally.
+# It connects to `tree_changed` signal of the whole scene tree.
+# There is close to no performance penalty when adding via this class.
+# @flag_no_duplicate_scenes if true, when syncing new added nodes below path, it
+# will make sure the same instance of a node doesn't appear twice in _scenes.
+# WARNING this scales really bad with the size of _scenes because it checks the
+# whole dictionary for duplicates for every externally added node
+# Also normally it shouldn't be necessary because why would you add the same 
+# instance under the path twice
+# @_adding_scene will be true if a scene is added by this class, so that if sync 
+# is on, it wont be added twice
+#
+# Methods:
+# @_init(path, synchronize, sync_no_duplicates) 
+# for all of the following: 
+# if deferred any tree_changes will be done with call_deferred() or queue_free()
+# hide()/show() only works for CanvasItems, it will throw and error otherwise
+# @add_scene(scene: PackedScene, key = count, method := ACTIVE, deferred := false)
+# adds scene under path using method, with key as key in _scenes dictionary. 
+# @show_scene(key = count, deferred := false):
+# if key in _hidden_scenes, makes scene visible. if key in _stopped_scenes attaches scene.  if neither throw error.
+# @remove_scene(key = count, method := ACTIVE, deferred := false)
+# opposite to add_scene()
+# @switch_scene( key_to, key_from = null, method_from := ACTIVE, deferred := false)
+# uses show_scene(key_to) and remove_scene(key_from, method_from) key_from defaults to last added _active_scenes
+# @switch_new_scene( scene_to: PackedScene, key_to = count, key_from = null, method_to := ACTIVE, method_from := ACTIVE, deferred := false)
+# same as switch_scene, but uses add_scene(scene_to, key_to,...) instead of show_scene
 
 enum { ACTIVE, HIDDEN, STOPPED }
 
@@ -29,23 +59,28 @@ var _scenes := {} setget set_scenes, get_scenes
 
 var count := 1
 var path: NodePath
-onready var local_root := get_node(path)
-
+var local_root: Node
 var flag_sync: bool
+var flag_no_duplicate_scenes := false
+var _adding_scene := false
 
 
-func _init(p: NodePath, synchronize := false):
+func _init(p: NodePath, synchronize := false, sync_no_duplicates := false):
 	path = p
 	flag_sync = synchronize
+	flag_no_duplicate_scenes = sync_no_duplicates
 
 
 func _ready():
-	# these are for syncing nodes that are added or removed by something other 
-	# than methods of this class
+	assert(
+		get_node(path).is_inside_tree(),
+		"scene_switcher: failed to initilize, given path isnt in scenetree"
+	)
+	local_root = get_node(path)
+	# for syncing nodes that are added by something other than this class
 	if flag_sync:
 		get_tree().connect("node_added", self, "_on_node_added")
-		get_tree().connect("node_removed", self, "_on_node_removed")
-		# this incorporates the existing child scenes of path into the tracker lists
+		# this incorporates the existing child scenes of path into the tracked lists
 		var children = local_root.get_children()
 		if children:
 			for s in children:
@@ -89,9 +124,11 @@ func get_scenes() -> Dictionary:
 
 
 func add_scene(
-	scene: PackedScene, method := ACTIVE, key = count, deferred := false
+	scene: PackedScene, key = count, method := ACTIVE, deferred := false
 ):
 	assert(key is int or key is String, "add_scene: key must be int or String")
+	if key is int:
+		assert(key == count, "add_scene: key must be string if it isn't count")
 	assert(
 		ACTIVE <= method and method <= STOPPED,
 		"add_scene: invalid method value"
@@ -102,27 +139,31 @@ func add_scene(
 	match method:
 		ACTIVE:
 			_active_scenes.push_back(key)
+			_adding_scene = true
 			if deferred:
-				local_root.call_deferred("add_child", "s")
+				local_root.call_deferred("add_child", s)
 			else:
 				local_root.add_child(s)
+			_adding_scene = false
 		HIDDEN:
 			assert(
 				s is CanvasItem,
 				"add_scene: scene must inherit from CanvasItem to be hidden"
 			)
 			_hidden_scenes.push_back(key)
+			_adding_scene = true
 			if deferred:
-				local_root.call_deferred("add_child", "s")
+				local_root.call_deferred("add_child", s)
 			else:
 				local_root.add_child(s)
+			_adding_scene = false
 			s.hide()
 		STOPPED:
 			_stopped_scenes.push_back(key)
 
 	_scenes[key] = s
 
-	if key is int and key == count:
+	if key is int:
 		count += 1
 
 
@@ -139,10 +180,12 @@ func show_scene(key = count, deferred := false):
 			_scenes[key].show()
 			_hidden_scenes.erase(key)
 		elif key in _stopped_scenes:
+			_adding_scene = true
 			if deferred:
 				local_root.call_deferred("add_child", _scenes[key])
 			else:
 				local_root.add_child(_scenes[key])
+			_adding_scene = false
 			_stopped_scenes.erase(key)
 		_active_scenes.push_back(key)
 
@@ -213,7 +256,7 @@ func switch_scene(
 func switch_new_scene(
 	scene_to: PackedScene,
 	key_to = count,
-	key_from := _active_scenes[-1],
+	key_from = null,
 	method_to := ACTIVE,
 	method_from := ACTIVE,
 	deferred := false
@@ -227,48 +270,68 @@ func switch_new_scene(
 		ACTIVE <= method_from and method_from <= STOPPED,
 		"switch_scene: invalid method value"
 	)
+	if key_from == null:
+		assert(_active_scenes.size() > 0, "switch_scene: no active scene")
+		key_from = _active_scenes[-1]
+	else:
+		assert(
+			key_from in _active_scenes, "switch_scene: scene_from not active"
+		)
 
 	add_scene(scene_to, method_to, key_to, deferred)
 	remove_scene(key_from, method_from, deferred)
 
 
 func _check_scenes():
+	var dead_keys = []
 	for k in _scenes:
-		_check_scene(k)
+		if not _check_scene(k, false):
+			dead_keys.push_back(k)
+	# this is necessary because dict.erase() doesn't work while iterating over dict
+	for k in dead_keys:
+		_scenes.erase(k)
+		print_debug("_check_scenes: scenes ", dead_keys, " were already freed")
 
 
-func _check_scene(key) -> bool:
+func _check_scene(key, single := true) -> bool:
 	assert(key in _scenes, "_check_scene: key not in _scenes")
 
 	if (
 		is_instance_valid(_scenes[key])
 		and not _scenes[key].is_queued_for_deletion()
 	):
-		if _scenes[key] is CanvasItem:
-			if _scenes[key].visible and key in _hidden_scenes:
-				_active_scenes.push_back(key)
-				_hidden_scenes.erase(key)
-			elif !_scenes[key].visible and key in _active_scenes:
-				_hidden_scenes.push_back(key)
+		if _scenes[key].is_inside_tree():
+			if _scenes[key] is CanvasItem:
+				if _scenes[key].visible and key in _hidden_scenes:
+					_active_scenes.push_back(key)
+					_hidden_scenes.erase(key)
+				elif ! _scenes[key].visible and key in _active_scenes:
+					_hidden_scenes.push_back(key)
+					_active_scenes.erase(key)
+		else:
+			if key in _active_scenes:
+				_stopped_scenes.push_back(key)
 				_active_scenes.erase(key)
-
 		return true
 	else:
-		_scenes.erase(key)
+		if single:
+			_scenes.erase(key)
+			print_debug("_check_scene: scene ", key, " was already freed")
 		if key in _active_scenes:
 			_active_scenes.erase(key)
 		elif key in _hidden_scenes:
 			_hidden_scenes.erase(key)
 		elif key in _stopped_scenes:
 			_stopped_scenes.erase(key)
-		print_debug("_check_scene: scene ", key, " was already freed")
 		return false
 
 
 func _on_node_added(node: Node):
+	if _adding_scene:
+		return
 	if node.get_parent() == local_root:
-		for k in _scenes:
-			if _scenes[k] == node:
+		if flag_no_duplicate_scenes:
+			if node in _scenes.values():
 				return
 		_scenes[count] = node
 		if node is CanvasItem:
@@ -276,27 +339,34 @@ func _on_node_added(node: Node):
 				_active_scenes.push_back(count)
 			else:
 				_hidden_scenes.push_back(count)
+		else:
+			_active_scenes.push_back(count)
 		count += 1
 
 
-func _on_node_removed(node: Node):
-	# doesnt work correctly when node.free() is called because this function is 
-	# called before it is freed so is_instance_valid(node) is true and its not 
-	# is_queued_for_deletion() since thats only the case when node.queue_free() 
-	# is called
-	for k in _scenes:
-		if _scenes[k] == node:
-			if is_instance_valid(node) and not node.is_queued_for_deletion():
-				if ! (k in _stopped_scenes):
-					_stopped_scenes.push_back(k)
-			else:
-				_scenes.erase(k)
-				if k in _hidden_scenes:
-					_hidden_scenes.erase(k)
-				elif k in _stopped_scenes:
-					_stopped_scenes.erase(k)
-			if k in _active_scenes:
-				_active_scenes.erase(k)
+# func _on_node_removed(node: Node):
+# 	# doesnt work correctly when node.free() is called because this function is 
+# 	# called before it is freed so is_instance_valid(node) is true and its not 
+# 	# is_queued_for_deletion() since thats only the case when node.queue_free() 
+# 	# is called
+# 	if _quitting:
+# 		return
+# 	if _removing_scene:
+# 		return
+# 	if node.get_parent() == local_root:
+# 		if node in _scenes.values():
+# 			var k = _scenes.keys()[_scenes.values().find(node)]
+# 			if is_instance_valid(node) and not node.is_queued_for_deletion():
+# 				if ! (k in _stopped_scenes):
+# 					_stopped_scenes.push_back(k)
+# 			else:
+# 				_scenes.erase(k)
+# 				if k in _hidden_scenes:
+# 					_hidden_scenes.erase(k)
+# 				elif k in _stopped_scenes:
+# 					_stopped_scenes.erase(k)
+# 			if k in _active_scenes:
+# 				_active_scenes.erase(k)
 
 
 func _to_string():
@@ -316,3 +386,4 @@ func _to_string():
 #node is_inside_tree()
 #node has_node(Node)
 #gdscript is_instance_valid(objectq)
+#Node.owner =
