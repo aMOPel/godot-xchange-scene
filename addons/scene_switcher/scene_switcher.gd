@@ -4,7 +4,7 @@ extends Node
 
 # high level interface to switch scenes
 #
-# is instanced by the Utils Autoload script with Utils.get_scene_switcher(path)
+# is instanced by the SceneSwitcherManager Autoload script with SceneSwitcherManager.get_scene_switcher(path)
 # takes an absolute NodePath and can manipulate scenes under it
 # can add/remove/show scenes and keeps track of different states of scenes
 # scenes can be:
@@ -42,10 +42,8 @@ extends Node
 # for all of the following:
 # if deferred any tree_changes will be done with call_deferred() or queue_free()
 # hide()/show() only works for CanvasItems, it will throw and error otherwise
-# @add_scene(scene: PackedScene, key = count, method := ACTIVE, deferred := false, single := true)
+# @add_scene(scene: PackedScene, key = count, method := ACTIVE, deferred := false)
 # adds scene under path using method, with key as key in _scenes dictionary.
-# If single is false, it wont check if the key already exists in the dictionary,
-# to prevent overriding a key and lose the reference to the scene. This is useful to speed up batch add_scene
 # @show_scene(key = count, deferred := false):
 # if key is HIDDEN, makes scene visible. If key is STOPPED attaches scene. If neither throw error.
 # @remove_scene(key = count, method := ACTIVE, deferred := false)
@@ -131,13 +129,12 @@ func get_scenes() -> Dictionary:
 
 
 func add_scene(
-	scene: PackedScene, key = count, method := ACTIVE, deferred := false, single := true
+	scene: PackedScene, key = count, method := ACTIVE, deferred := false
 ):
 	assert(key is int or key is String, "add_scene: key must be int or String")
 	if key is int:
 		assert(key == count, "add_scene: key must be string if it isn't count")
-	if single:
-		assert(! (key in _scenes), "add_scene: key already exists")
+	assert(! (key in _scenes), "add_scene: key already exists")
 	assert(
 		ACTIVE <= method and method <= STOPPED,
 		"add_scene: invalid method value"
@@ -275,6 +272,7 @@ func switch_add_scene(
 
 func _get_last_active():
 	get_active_scenes()
+	# unclear if order of adding of scenes is preserved in array
 	return _active_scenes[-1]
 
 
@@ -377,4 +375,4 @@ func _to_string():
 	return s
 
 # TODO Node.owner = recursive
-# TODO add batch adding/removing 
+# TODO add batch adding/removing
