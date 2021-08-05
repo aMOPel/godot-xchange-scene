@@ -8,7 +8,6 @@ Inspired by [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually)
 I wrote a little wrapper around the ways to switch scenes.
 
-This Repo contains this wrapper and a ready to go example of its usage.
 
 __TL;DR__:
 The scene switcher script is in `utils/scene_switcher.gd` (300 lines)
@@ -76,3 +75,7 @@ The rest of the Nodes are basically just dummy nodes.
   - wrapper for arbitrary amounts of scenes, eg add_scene([NodePath, ...])
 
 
+## Attributions
+
+Icons made by [Freepik](https://www.freepik.com) from 
+[Flaticon](https://www.flaticon.com/)
