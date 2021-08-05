@@ -1,9 +1,9 @@
 extends Node
 
-# handles utility classes
-# should be an AutoLoad script named Utils
+# can create instances of SceneSwitcher below this node
+# should be an AutoLoad script named SceneSwitcherManager
 
-var scene_switcher = load("utils/scene_switcher.gd")
+var scene_switcher := preload("res://addons/scene_switcher/scene_switcher.gd")
 
 
 func get_scene_switcher(path: NodePath, synchronize:= false, sync_no_duplicates:= false):

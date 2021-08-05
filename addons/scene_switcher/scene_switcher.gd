@@ -56,6 +56,7 @@ extends Node
 # same as switch_scene, but uses add_scene(scene_to, key_to,...) instead of show_scene
 
 # warnings-disable
+
 enum { ACTIVE, HIDDEN, STOPPED }
 
 var _scenes := {} setget set_scenes, get_scenes
@@ -376,3 +377,4 @@ func _to_string():
 	return s
 
 # TODO Node.owner = recursive
+# TODO add batch adding/removing 
