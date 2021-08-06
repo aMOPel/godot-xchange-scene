@@ -196,6 +196,8 @@ func show_scene(key = count, deferred := false):
 					local_root.add_child(s.scene)
 				_adding_scene = false
 		s.status = ACTIVE
+	else:
+		assert(true, "show_scene: key invalid")
 
 
 func remove_scene(key = count, method := ACTIVE, deferred := false):
@@ -363,6 +365,12 @@ func _on_node_added(node: Node):
 
 func _to_string():
 	var s = ""
+	s += self.get_class() + " "
+	s += self.get_instance_id() as String + " "
+	return s
+
+func debug():
+	var s = ""
 	s += "active: " + _active_scenes as String + "\n"
 	s += "hidden: " + _hidden_scenes as String + "\n"
 	s += "stopped: " + _stopped_scenes as String + "\n"
@@ -372,7 +380,7 @@ func _to_string():
 	s += local_root.get_children() as String + "\n"
 	# get_node("/root").print_stray_nodes()
 	# get_node("/root").print_tree_pretty()
-	return s
+	print(s)
 
 # TODO Node.owner = recursive
 # TODO add batch adding/removing
