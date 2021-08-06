@@ -10,27 +10,27 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Node",
-"class": "SceneSwitcher",
+"class": "XScene",
 "language": "GDScript",
-"path": "res://addons/scene_switcher/scene_switcher.gd"
+"path": "res://addons/x_scene/x_scene.gd"
 } ]
 _global_script_class_icons={
-"SceneSwitcher": ""
+"XScene": ""
 }
 
 [application]
 
-config/name="godot-scene-switcher"
+config/name="godot-exchange-scene"
 run/main_scene="res://example/main.tscn"
 config/icon="res://icon.png"
 
 [autoload]
 
-SceneSwitcherManager="*res://addons/scene_switcher/scene_switcher_manager.gd"
+XSceneManager="*res://addons/x_scene/x_scene_manager.gd"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/gut/plugin.cfg", "res://addons/scene_switcher/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/gut/plugin.cfg", "res://addons/x_scene/plugin.cfg" )
 
 [physics]
 

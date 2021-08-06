@@ -12,7 +12,7 @@ class TestInit:
 		c = Node.new()
 		add_child(n)
 		n.add_child(c)
-		sw = SceneSwitcherManager.get_scene_switcher(n.get_path(), true, true)
+		sw = XSceneManager.get_x_scene(n.get_path(), true, true)
 		gut.p("ran run setup")
 
 	func after_all():
@@ -47,7 +47,7 @@ class TestAdd:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = SceneSwitcherManager.get_scene_switcher(n.get_path())
+		sw = XSceneManager.get_x_scene(n.get_path())
 
 	func after_each():
 		for s in sw._scenes.values():
@@ -114,7 +114,7 @@ class TestShow:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = SceneSwitcherManager.get_scene_switcher(n.get_path())
+		sw = XSceneManager.get_x_scene(n.get_path())
 		sw.add_scene(s1, sw.count, sw.HIDDEN)
 		sw.add_scene(s1, sw.count, sw.STOPPED)
 
@@ -159,7 +159,7 @@ class TestRemove:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = SceneSwitcherManager.get_scene_switcher(n.get_path())
+		sw = XSceneManager.get_x_scene(n.get_path())
 		sw.add_scene(s1, sw.count, sw.ACTIVE)
 		sw.add_scene(s1, sw.count, sw.HIDDEN)
 		sw.add_scene(s1, sw.count, sw.STOPPED)
@@ -169,32 +169,128 @@ class TestRemove:
 			s.scene.free()
 		sw.free()
 
+	func test_remove_key():
+		pass
 	func test_remove_active():
 		assert_false(sw._scenes.empty())
 
-		var s = sw._scenes[1]
+		var s 
+
+		s = sw._scenes[1]
 		assert_true(is_instance_valid(s.scene))
 		sw.remove_scene(1)
 		assert_false(is_instance_valid(s.scene))
 
 		s = sw._scenes[2]
 		assert_true(is_instance_valid(s.scene))
-		sw.remove_scene(1)
+		sw.remove_scene(2)
 		assert_false(is_instance_valid(s.scene))
 
 		s = sw._scenes[3]
 		assert_true(is_instance_valid(s.scene))
-		sw.remove_scene(1)
+		sw.remove_scene(3)
 		assert_false(is_instance_valid(s.scene))
 
 		assert_true(sw._scenes.empty())
 
 	func test_remove_hidden():
-		var s = sw._scenes[1]
-		assert_true(is_instance_valid(s.scene))
-		sw.remove_scene(1)
-		assert_true(is_instance_valid(s.scene))
+		var d = sw._scenes
+		assert_eq(d[1].status, sw.ACTIVE)
+		assert_eq(d[2].status, sw.HIDDEN)
+		assert_eq(d[3].status, sw.STOPPED)
+
+		var s 
+		s = sw._scenes[1]
+		assert_true(s.scene.visible)
+		sw.remove_scene(1, sw.HIDDEN)
+		assert_false(s.scene.visible)
+
+		s = sw._scenes[2]
+		assert_false(s.scene.visible)
+		sw.remove_scene(2, sw.HIDDEN)
+		assert_false(s.scene.visible)
+
+		s = sw._scenes[3]
+		assert_true(s.scene.visible)
+		sw.remove_scene(3, sw.HIDDEN)
+		assert_true(s.scene.visible)
+
+		assert_eq(d[1].status, sw.HIDDEN)
+		assert_eq(d[2].status, sw.HIDDEN)
+		assert_eq(d[3].status, sw.STOPPED)
+
+	func test_remove_stopped():
+		var d = sw._scenes
+		assert_eq(d[1].status, sw.ACTIVE)
+		assert_eq(d[2].status, sw.HIDDEN)
+		assert_eq(d[3].status, sw.STOPPED)
+
+		var s 
+
+		s = sw._scenes[1]
+		assert_true(s.scene.is_inside_tree())
+		sw.remove_scene(1, sw.STOPPED)
+		assert_false(s.scene.is_inside_tree())
+
+		s = sw._scenes[2]
 		assert_true(s.scene.is_inside_tree())
 		assert_false(s.scene.visible)
-		assert_eq(s.status, sw.HIDDEN)
-		assert_true(sw.local_root.is_a_parent_of(s.scene))
+		sw.remove_scene(2, sw.STOPPED)
+		assert_false(s.scene.is_inside_tree())
+		assert_true(s.scene.visible)
+
+		s = sw._scenes[3]
+		assert_false(s.scene.is_inside_tree())
+		sw.remove_scene(3, sw.STOPPED)
+		assert_false(s.scene.is_inside_tree())
+
+		assert_eq(d[1].status, sw.STOPPED)
+		assert_eq(d[2].status, sw.STOPPED)
+		assert_eq(d[3].status, sw.STOPPED)
+
+	func test_remove_active_deferred():
+		assert_false(sw._scenes.empty())
+		var s
+
+		for i in range(1,4):
+			s = sw._scenes[i]
+			assert_true(is_instance_valid(s.scene))
+			sw.remove_scene(i, sw.ACTIVE, true)
+			assert_true(is_instance_valid(s.scene))
+			yield(get_tree(), "idle_frame")
+			assert_false(is_instance_valid(s.scene))
+
+		assert_true(sw._scenes.empty())
+
+	func test_remove_stopped_deferred():
+		var d = sw._scenes
+		assert_eq(d[1].status, sw.ACTIVE)
+		assert_eq(d[2].status, sw.HIDDEN)
+		assert_eq(d[3].status, sw.STOPPED)
+
+		var s
+
+		s = sw._scenes[1]
+		assert_true(s.scene.is_inside_tree())
+		sw.remove_scene(1, sw.STOPPED, true)
+		assert_true(s.scene.is_inside_tree())
+		yield(get_tree(), "idle_frame")
+		assert_false(s.scene.is_inside_tree())
+
+		s = sw._scenes[2]
+		assert_true(s.scene.is_inside_tree())
+		sw.remove_scene(2, sw.STOPPED, true)
+		assert_true(s.scene.is_inside_tree())
+		yield(get_tree(), "idle_frame")
+		assert_false(s.scene.is_inside_tree())
+
+		s = sw._scenes[3]
+		assert_false(s.scene.is_inside_tree())
+		sw.remove_scene(3, sw.STOPPED, true)
+		assert_false(s.scene.is_inside_tree())
+		yield(get_tree(), "idle_frame")
+		assert_false(s.scene.is_inside_tree())
+
+		assert_eq(d[1].status, sw.STOPPED)
+		assert_eq(d[2].status, sw.STOPPED)
+		assert_eq(d[3].status, sw.STOPPED)

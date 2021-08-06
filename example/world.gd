@@ -8,7 +8,7 @@ var scene3 = preload("scene3.tscn")
 func _ready():
 	var time_begin
 
-	var sw = SceneSwitcherManager.get_scene_switcher(get_path())
+	var sw = XSceneManager.get_x_scene(get_path())
 
 
 	# time_begin = OS.get_ticks_usec()
@@ -32,7 +32,7 @@ func _ready():
 	print((OS.get_ticks_usec() - time_begin)/1000000.0)
 
 	# time_begin = OS.get_ticks_usec()
-	# var sw1 = SceneSwitcherManager.get_scene_switcher(get_path(), true)
+	# var sw1 = XSceneManager.get_x_scene(get_path(), true)
 	# print((OS.get_ticks_usec() - time_begin)/1000000.0)
 
 	# time_begin = OS.get_ticks_usec()
@@ -76,7 +76,7 @@ func _ready():
 	# yield(get_tree().create_timer(2.0), "timeout")
 	# # sets hidden scene "b" to visible and frees the instance of scene1 in the tree,
 	# # this instance is no longer tracked since its dead
-	# sw.switch_scene("b")
+	# sw.x_scene("b")
 	# print_debug(sw)
 	# print_debug("with sync:\n", sw1)
 	#
@@ -85,7 +85,7 @@ func _ready():
 	# sw.add_scene(scene3, sw.HIDDEN, "c")
 	# # instance scene1 again and add it to the tree visible,
 	# # also remove "b" from the tree, its still in memory
-	# sw.switch_new_scene(scene1, "a", "b", sw.ACTIVE, sw.STOPPED)
+	# sw.x_new_scene(scene1, "a", "b", sw.ACTIVE, sw.STOPPED)
 	# print_debug(sw)
 	# print_debug("with sync:\n", sw1)
 	#

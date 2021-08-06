@@ -1,10 +1,10 @@
-class_name SceneSwitcher
+class_name XScene
 
 extends Node
 
-# high level interface to switch scenes
+# high level interface to exchange scenes
 #
-# is instanced by the SceneSwitcherManager Autoload script with SceneSwitcherManager.get_scene_switcher(path)
+# is instanced by the XSceneManager Autoload script with XSceneManager.get_x_scene(path)
 # takes an absolute NodePath and can manipulate scenes under it
 # can add/remove/show scenes and keeps track of different states of scenes
 # scenes can be:
@@ -48,14 +48,15 @@ extends Node
 # if key is HIDDEN, makes scene visible. If key is STOPPED attaches scene. If neither throw error.
 # @remove_scene(key = count, method := ACTIVE, deferred := false)
 # opposite to add_scene()
-# @switch_scene( key_to, key_from = null, method_from := ACTIVE, deferred := false)
+# @x_scene( key_to, key_from = null, method_from := ACTIVE, deferred := false)
 # uses show_scene(key_to) and remove_scene(key_from, method_from) key_from defaults to last added _active_scenes
-# @switch_new_scene( scene_to: PackedScene, key_to = count, key_from = null, method_to := ACTIVE, method_from := ACTIVE, deferred := false)
-# same as switch_scene, but uses add_scene(scene_to, key_to,...) instead of show_scene
+# @x_new_scene( scene_to: PackedScene, key_to = count, key_from = null, method_to := ACTIVE, method_from := ACTIVE, deferred := false)
+# same as x_scene, but uses add_scene(scene_to, key_to,...) instead of show_scene
 
 # warnings-disable
 
 enum { ACTIVE, HIDDEN, STOPPED }
+var FREE := 0
 
 var _scenes := {} setget set_scenes, get_scenes
 var _active_scenes := [] setget _set_active_scenes, get_active_scenes
@@ -79,7 +80,7 @@ func _init(p: NodePath, synchronize := false, sync_no_duplicates := false):
 func _ready():
 	assert(
 		get_node(path).is_inside_tree(),
-		"scene_switcher: failed to initilize, given path isnt in scenetree"
+		"x_scene_ready: failed to initilize, given path isnt in scenetree"
 	)
 	local_root = get_node(path)
 	# for syncing nodes that are added by something other than this class
@@ -176,7 +177,6 @@ func add_scene(
 
 
 func show_scene(key = count, deferred := false):
-
 	if _check_scene(key):
 		var s = _scenes[key]
 		assert(! (s.status == ACTIVE), "show_scene: scene already active")
@@ -194,6 +194,8 @@ func show_scene(key = count, deferred := false):
 					local_root.call_deferred("add_child", s.scene)
 				else:
 					local_root.add_child(s.scene)
+				if s.scene is CanvasItem and not s.scene.visible:
+					s.scene.show()
 				_adding_scene = false
 		s.status = ACTIVE
 	else:
@@ -221,37 +223,41 @@ func remove_scene(key = count, method := ACTIVE, deferred := false):
 					s.scene is CanvasItem,
 					"remove_scene: scene must inherit from CanvasItem to be hidden"
 				)
-				s.scene.hide()
-				s.status = HIDDEN
+				if s.status == ACTIVE:
+					s.scene.hide()
+					s.status = HIDDEN
 			STOPPED:
-				if deferred:
-					local_root.call_deferred("remove_child", s.scene)
-				else:
-					local_root.remove_child(s.scene)
-				s.status = STOPPED
+				if s.status != STOPPED:
+					if deferred:
+						local_root.call_deferred("remove_child", s.scene)
+					else:
+						local_root.remove_child(s.scene)
+					if s.scene is CanvasItem and s.status == HIDDEN:
+						s.scene.show()
+					s.status = STOPPED
 
 
-func switch_scene(
+func x_scene(
 	key_to, key_from = null, method_from := ACTIVE, deferred := false
 ):
 	if key_from == null:
 		key_from = _get_last_active()
-		assert(key_from != null, "switch_scene: no active scene")
+		assert(key_from != null, "x_scene: no active scene")
 	else:
 		assert(
 			_scenes[key_from].status == ACTIVE,
-			"switch_scene: scene_from not active"
+			"x_scene: scene_from not active"
 		)
 	assert(
 		! (_scenes[key_to].status == ACTIVE),
-		"switch_scene: scene_to already active"
+		"x_scene: scene_to already active"
 	)
 
 	remove_scene(key_from, method_from, deferred)
 	show_scene(key_to, deferred)
 
 
-func switch_add_scene(
+func x_add_scene(
 	scene_to: PackedScene,
 	key_to = count,
 	key_from = null,
@@ -261,11 +267,11 @@ func switch_add_scene(
 ):
 	if key_from == null:
 		key_from = _get_last_active()
-		assert(key_from != null, "switch_add_scene: no active scene")
+		assert(key_from != null, "x_add_scene: no active scene")
 	else:
 		assert(
 			_scenes[key_from].status == ACTIVE,
-			"switch_add_scene: scene_from not active"
+			"x_add_scene: scene_from not active"
 		)
 
 	add_scene(scene_to, key_to, method_to, deferred)
@@ -349,7 +355,7 @@ func _on_node_added(node: Node):
 		return
 	if node.get_parent() == local_root:
 		if flag_no_duplicate_scenes:
-			for s in  _scenes.values():
+			for s in _scenes.values():
 				if node == s.scene:
 					return
 		var d = {}
@@ -368,6 +374,7 @@ func _to_string():
 	s += self.get_class() + " "
 	s += self.get_instance_id() as String + " "
 	return s
+
 
 func debug():
 	var s = ""
