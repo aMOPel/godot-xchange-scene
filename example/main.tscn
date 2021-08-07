@@ -11,5 +11,8 @@ script = ExtResource( 3 )
 
 [node name="World" parent="." instance=ExtResource( 1 )]
 
+[node name="Test" type="Node" parent="."]
+
 [editable path="Gui"]
 [editable path="World"]
+[editable path="World/Node2D"]

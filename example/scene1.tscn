@@ -4,6 +4,10 @@
 
 [node name="Node2D" type="Node2D"]
 
-[node name="icon" type="Sprite" parent="."]
+[node name="Node2D" type="Node2D" parent="."]
+
+[node name="Node2D" type="Node2D" parent="Node2D"]
+
+[node name="icon" type="Sprite" parent="Node2D/Node2D"]
 position = Vector2( 227, 156 )
 texture = ExtResource( 1 )
