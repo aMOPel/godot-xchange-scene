@@ -6,7 +6,7 @@ extends Node
 var x_scene := preload("res://addons/x_scene/x_scene.gd")
 
 
-func get_x_scene(path: NodePath, synchronize:= false, sync_no_duplicates:= false):
-	var sw = x_scene.new(path, synchronize, sync_no_duplicates)
+func get_x_scene(path, synchronize:= false):
+	var sw = x_scene.new(path, synchronize)
 	add_child(sw)
 	return sw

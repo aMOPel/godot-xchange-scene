@@ -27,12 +27,8 @@ extends Node
 # This might be very slow when many nodes are added below @local_root externally.
 # It connects to `tree_changed` signal of the whole scene tree.
 # There is close to no performance penalty when adding scenes via this class.
-# @flag_no_duplicate_scenes if true, when syncing new added nodes below path, it
-# will make sure the same instance of a node doesn't appear twice in _scenes.
-# WARNING this scales really bad with the size of _scenes because it checks the
-# whole _scenes dictionary for duplicates for every externally added node
-# Duplicates can eg appear when you add, remove(STOPPED), and add again externally.
-# The remove wont erase the node from _scenes, but the second add will trigger the
+# WARNING Duplicates can eg appear when you add, remove(STOPPED), and add again externally.
+# The remove wont erase the node from scenes, but the second add will trigger the
 # sync and add the node again
 # @_adding_scene will be true if a scene is added by this class, so that if sync
 # is on, it wont be added twice
@@ -71,10 +67,7 @@ var flag_no_duplicate_scenes: bool
 var _adding_scene := false
 
 
-func _init(p: NodePath, synchronize := false, sync_no_duplicates := false):
-	path = p
 	flag_sync = synchronize
-	flag_no_duplicate_scenes = sync_no_duplicates
 
 
 func _ready():
@@ -353,11 +346,6 @@ func _check_scene(key, single := true) -> bool:
 func _on_node_added(node: Node):
 	if _adding_scene:
 		return
-	if node.get_parent() == local_root:
-		if flag_no_duplicate_scenes:
-			for s in _scenes.values():
-				if node == s.scene:
-					return
 		var d = {}
 		d.scene = node
 		if node is CanvasItem and not node.visible:
