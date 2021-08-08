@@ -42,6 +42,7 @@ possibilities. This is especially interesting for better control over memory.
   - Subscene support / self validity check
     + Instances of the XScene class will `self.queue_free()`, when NodePath was freed, thus preventing errors when trying to manipulating scenes below a freed node
     + So it's good practice to have a condition `if is_instance_valid(XScene_instance):` in the beginning of every function and after every yield when planing to use a XScene instance
+  - Bulk functions
 
 ## Installation
 

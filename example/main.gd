@@ -121,33 +121,49 @@ func tutorial_basics():
 	# ┃        ┖╴Node2D
 	# ┃           ┖╴icon
 	# ┖╴Test
+
 	# frees active "stopped_s1", and makes "a" active. before, it was hidden
 	# it uses show_scene and remove_scene under the hood
 	x.x_scene("a", "stopped_s1", x.FREE)
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1235], status:0}, a:{scene:[Node2D:1239], status:0}}
+
 	# instances scene2 as x.count which is 2 and makes it active, if key_from is null,
 	# the default, the last active scene is used, in this case "a", it is freed
 	# it uses add_scene and remove_scene under the hood
 	x.x_add_scene(scene2, x.count, null, x.ACTIVE, x.FREE)
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1235], status:0}, 2:{scene:[Node2D:1247], status:0}}
+
 	# hides 2 externally
-	# x.scenes[2].scene.hide()
+	x.scenes[2].scene.hide()
+
 	# this is a quicker syntax to access ("x"ess) the scene directly
 	x.x(2).hide()
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1235], status:0}, 2:{scene:[Node2D:1247], status:1}}
+
 	# stoppes 2 externally
 	$"World".remove_child(x.x(2))
 	# print(x.stopped)
 	# -> [2]
+
 	# frees 1 externally
 	x.x(1).free()
 	# print(x.scenes)
 	# -> {2:{scene:[Node2D:1247], status:2}}
+
 	# all these external changes to tracked scenes will be (lazily) synced when
 	# accessing the scenes in any way
+
+	# this is a faster syntax to get all node references in an array
+	print(x.xs())
+	# -> [[Node2D:1246]]
+
+	# same but only for stopped scenes, works the same for ACTIVE and HIDDEN
+	print(x.xs(x.STOPPED))
+	# -> [[Node2D:1246]]
+
 	# frees all scenes
 	for s in x.scenes:
 		x.remove_scene(s)
@@ -175,10 +191,11 @@ func tutorial_bulk():
 	# print(x.scenes)
 	# -> {a:{scene:[Node2D:1257], status:2}, b:{scene:[Node2D:1261], status:2}, c:{scene:[Node2D:1263], status:2}}
 
-	# show all stopped scenes
-	x.show_scenes(x.stopped)
+	# show all scenes
+	x.show_scenes(x.scenes.keys())
 	# print(x.scenes)
 	# -> {a:{scene:[Node2D:1257], status:0}, b:{scene:[Node2D:1261], status:0}, c:{scene:[Node2D:1263], status:0}}
+
 
 
 func tutorial_defaults():

@@ -143,6 +143,18 @@ func x(key):
 	else:
 		print_debug("XScene x: key invalid")
 
+func xs(method=null):
+	_check_scenes(method)
+	var a := []
+	if method == null:
+		for k in scenes.keys():
+			a.push_back(scenes[k].scene)
+	else:
+		for k in scenes.keys():
+			if scenes[k].status == method:
+				a.push_back(scenes[k].scene)
+	return a
+
 
 func add_scene(
 	scene,
