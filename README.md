@@ -3,7 +3,7 @@
 
 # EXchangeScene
 
-Made with Godot version 3.3.2.stable.official
+Made with Godot version __3.3.2.stable.official__
 
 Inspired by [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually)
@@ -11,6 +11,105 @@ I wrote a wrapper around the ways to __exchange scenes__.
 
 __TL;DR__:
 In the [__example/main.gd__](example/main.gd) you can see how to use it.
+
+## In Action
+
+```gdscript
+var scene1 = preload("scene1.tscn")
+var x = XSceneManager.get_x_scene($"World")
+
+# is indexed automatically with integer 1
+x.add_scene(scene1)
+x.add_scene(scene1, "a", x.HIDDEN)
+x.add_scene(scene1, "stopped_s1", x.STOPPED)
+
+# ┖╴root
+# 	┠╴XSceneManager
+# 	┃  ┖╴@@2 <- x
+# 	┖╴Main
+# 	   ┠╴Gui
+# 	   ┃  ┖╴ColorRect
+# 	   ┠╴World
+# 	   ┃  ┠╴Node2D <- was already in the tree via editor
+# 	   ┃  ┃  ┖╴Node2D
+# 	   ┃  ┃     ┖╴Node2D
+# 	   ┃  ┃        ┖╴icon
+# 	   ┃  ┠╴@Node2D@3 <- 1
+# 	   ┃  ┃  ┖╴Node2D
+# 	   ┃  ┃     ┖╴Node2D
+# 	   ┃  ┃        ┖╴icon
+# 	   ┃  ┖╴@Node2D@4 <- "a"
+# 	   ┃     ┖╴Node2D
+# 	   ┃        ┖╴Node2D
+# 	   ┃           ┖╴icon
+# 	   ┖╴Test
+
+print(x.scenes)
+# {1:{scene:[Node2D:1235], status:0},
+# a:{scene:[Node2D:1239], status:1},
+# stopped_s1:{scene:[Node2D:1243], status:2}}
+
+x.remove_scene(1, x.STOPPED)
+# ┠╴World
+# ┃  ┠╴Node2D
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┖╴@Node2D@4 <- "a" still hidden but in tree
+# ┃     ┖╴Node2D
+# ┃        ┖╴Node2D
+# ┃           ┖╴icon
+# ┖╴Test
+
+# mind the plural
+x.show_scenes(x.stopped)
+# ┠╴World
+# ┃  ┠╴Node2D
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┠╴@Node2D@4
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┠╴@Node2D@3 <- 1 active again
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┖╴@Node2D@5 <- "stopped_s1" active again
+# ┃     ┖╴Node2D
+# ┃        ┖╴Node2D
+# ┃           ┖╴icon
+# ┖╴Test
+
+# exchange scene
+x.x_scene("a", "stopped_s1", x.FREE)
+# ┠╴World
+# ┃  ┠╴Node2D
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┠╴@Node2D@4 <- "a" no longer hidden
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┃  ┠╴@Node2D@3 <- 1
+# ┃  ┃  ┖╴Node2D
+# ┃  ┃     ┖╴Node2D
+# ┃  ┃        ┖╴icon
+# ┖╴Test
+
+# to access ("x"ess) the scene of "a" directly
+x.x("a").hide()
+# to get all keys of hidden scenes
+x.hidden
+# to access all hidden scenes directly
+x.xs(x.HIDDEN)
+# put it into a file
+x.pack("res://example/test.scn")
+# free everything below
+x.remove_scenes(x.scenes.keys())
+```
 
 ## Features
 
@@ -59,14 +158,14 @@ __Don't forget to enable it in your project settings!__
 
 In the [__example/main.gd__](example/main.gd) you can see how to use it.
 
-This plugin, while it is enabled, adds an __AutoLoad__ named `XSceneManager` to 
+This plugin, while it is enabled, adds an `AutoLoad` named `XSceneManager` to 
 your project.
 
-With `var x = XSceneManager.get_x_scene(NodePath)` you get an instance of __XScene__ (the main class), which acts below 
-`NodePath`, but in the `SceneTree` it sits below the __AutoLoad__ `XSceneManager` Node, 
+With `var x = XSceneManager.get_x_scene(NodePath)` you get an instance of `XScene` (the main class), which acts below 
+`NodePath`. However in the `SceneTree` it sits below the `AutoLoad` `XSceneManager` Node, 
 so it's not cluttering your scenes.
 
-## Transistions
+### Transistions
 
 
 | from\to | ACTIVE = 0 | HIDDEN = 1 | STOPPED = 2 | FREE = 3 |
@@ -79,16 +178,16 @@ so it's not cluttering your scenes.
 The states are just an `enum`, so you can also use the integers, but writing out 
 the names helps readability of your code.
 
-Normally the visibility of a node (HIDDEN) and if it's in the tree or not 
-(STOPPED), are unrelated. However, in this plugin it's either or. Meaning, when 
-a hidden scene is stopped, its visibility will be reset to true. And when a
+Normally the _visibility of a node (HIDDEN)_ and _if it's in the tree or not 
+(STOPPED)_, are unrelated. However, in this plugin it's _either or_. Meaning, when 
+a hidden scene is stopped, its visibility will be reset to `true`. And when a
 stopped scene happened to also be hidden, `show_scene` will reset its visibility 
-to true.
+to `true`.
 
-NOTE: Although this plugin resembles a state machine, it isn't implemented as 
+__NOTE__: Although this plugin resembles a state machine, it isn't implemented as 
 one.
 
-## Caveats
+### Caveats
 
   - This plugin adds an __overhead__ to adding and removing scenes. When you add or remove in __high quantities__, you should consider using the __built-in commands__ if you don't have to index the scenes so thoroughly.
   - The __sync feature__ adds __more overhead__ and should also only be used for __small quantities__ of scenes. Mind that this feature, checks for every addition in the whole tree, so if you were to have a few XScene instances with sync enabled, every instances will make checks and add even more overhead
@@ -116,5 +215,5 @@ the overhead is more or less independent of sync when removing scenes.
 
 ## Attributions
 
-Icons made by [Freepik](https://www.freepik.com) from
+Icon made by [Freepik](https://www.freepik.com) from
 [Flaticon](https://www.flaticon.com/)
