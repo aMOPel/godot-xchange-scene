@@ -9,6 +9,9 @@ func _ready():
 	# the basic usage
 	tutorial_basics()
 
+	# bulk functions
+	# tutorial_bulk()
+
 	# change the default values for function calls
 	# tutorial_defaults()
 
@@ -33,11 +36,11 @@ func _ready():
 func tutorial_basics():
 	# gives instance of XScene with x.root = $"World"
 	# x adds and removes scenes below x.root
-	# it takes a Node 
+	# it takes a Node
 	var x = XSceneManager.get_x_scene($"World")
 	# or a NodePath
 	# var x = XSceneManager.get_x_scene(@"World")
-	# the Node has to be in the scenetree 
+	# the Node has to be in the scenetree
 
 	# add_scene takes a PackedScene or a Node
 	# it defaults to key=count, method=ACTIVE, deferred=false, recursive_owner=false
@@ -52,7 +55,7 @@ func tutorial_basics():
 	# print(x.get_scenes()["stopped_s1"])
 	#  -> {scene:[Node2D:1243], status:2}
 	# print(x.scenes)
-	#  -> 
+	#  ->
 	# {1:{scene:[Node2D:1235], status:0},
 	# a:{scene:[Node2D:1239], status:1},
 	# stopped_s1:{scene:[Node2D:1243], status:2}}
@@ -72,7 +75,7 @@ func tutorial_basics():
 	# 	   ┃  ┃  ┖╴Node2D
 	# 	   ┃  ┃     ┖╴Node2D
 	# 	   ┃  ┃        ┖╴icon
-	# 	   ┃  ┖╴@Node2D@4 <- "a" 
+	# 	   ┃  ┖╴@Node2D@4 <- "a"
 	# 	   ┃     ┖╴Node2D
 	# 	   ┃        ┖╴Node2D
 	# 	   ┃           ┖╴icon
@@ -105,7 +108,7 @@ func tutorial_basics():
 	# ┃  ┃  ┖╴Node2D
 	# ┃  ┃     ┖╴Node2D
 	# ┃  ┃        ┖╴icon
-	# ┃  ┠╴@Node2D@4 
+	# ┃  ┠╴@Node2D@4
 	# ┃  ┃  ┖╴Node2D
 	# ┃  ┃     ┖╴Node2D
 	# ┃  ┃        ┖╴icon
@@ -123,7 +126,7 @@ func tutorial_basics():
 	x.x_scene("a", "stopped_s1", x.FREE)
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1235], status:0}, a:{scene:[Node2D:1239], status:0}}
-	# instances scene2 as x.count which is 2 and makes it active, if key_from is null, 
+	# instances scene2 as x.count which is 2 and makes it active, if key_from is null,
 	# the default, the last active scene is used, in this case "a", it is freed
 	# it uses add_scene and remove_scene under the hood
 	x.x_add_scene(scene2, x.count, null, x.ACTIVE, x.FREE)
@@ -143,11 +146,39 @@ func tutorial_basics():
 	x.x(1).free()
 	# print(x.scenes)
 	# -> {2:{scene:[Node2D:1247], status:2}}
-	# all these external changes to tracked scenes will be (lazily) synced when 
+	# all these external changes to tracked scenes will be (lazily) synced when
 	# accessing the scenes in any way
 	# frees all scenes
 	for s in x.scenes:
 		x.remove_scene(s)
+
+
+func tutorial_bulk():
+	var x = XSceneManager.get_x_scene($"World")
+
+	# there are also convenience functions to add/show/remove multiple scenes at once,
+	# this is especially useful when using x.active/x.hidden/x.stopped
+	# there is no real performance gain/penalty when using these
+
+	# adds 3 scenes indexed with count
+	x.add_scenes([scene1, scene2, scene3])
+	# print(x.scenes)
+	# -> {1:{scene:[Node2D:1249], status:0}, 2:{scene:[Node2D:1253], status:0}, 3:{scene:[Node2D:1255], status:0}}
+
+	# frees all active scenes
+	x.remove_scenes(x.active)
+	# print(x.scenes)
+	# -> {}
+
+	# adds 3 stopped scenes indexed with array
+	x.add_scenes([scene1, scene2, scene3], ["a", "b", "c"], x.STOPPED)
+	# print(x.scenes)
+	# -> {a:{scene:[Node2D:1257], status:2}, b:{scene:[Node2D:1261], status:2}, c:{scene:[Node2D:1263], status:2}}
+
+	# show all stopped scenes
+	x.show_scenes(x.stopped)
+	# print(x.scenes)
+	# -> {a:{scene:[Node2D:1257], status:0}, b:{scene:[Node2D:1261], status:0}, c:{scene:[Node2D:1263], status:0}}
 
 
 func tutorial_defaults():
@@ -177,6 +208,7 @@ func tutorial_defaults():
 	yield(get_tree(), "idle_frame")
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1234], status:0}}
+
 
 func tutorial_deferred():
 	var x = XSceneManager.get_x_scene($"World")
@@ -219,7 +251,6 @@ func tutorial_deferred():
 	# ┃           ┖╴icon
 	# ┖╴Test
 	# not in the tree any longer
-
 
 	x.show_scene(1)
 	# print(x.scenes)
@@ -333,7 +364,7 @@ func tutorial_subscene():
 	# this doesn't throw an error, it calls queue_free() for x1
 	x1.add_scene(scene1, "bb")
 	# uncomment this to get the error, after it x1 will be freed
-	# yield(get_tree(), "idle_frame") 
+	# yield(get_tree(), "idle_frame")
 	# comment this unsafe call after uncommenting yield
 	x1.add_scene(scene1, "cc")
 	# if you check you are still safe
@@ -353,7 +384,7 @@ func tutorial_pack():
 	n2.add_child(n3)
 
 	# the last argument passed in, makes x.root owner of every node below n1
-	# this is only necessary for scenes constructed in scripts 
+	# this is only necessary for scenes constructed in scripts
 	# scenes made in the editor will be packed recursively without it
 	x.add_scene(n1, "b", 0, false, true)
 	# this packs x.root
@@ -463,3 +494,31 @@ func tutorial_time():
 
 	print("nosync add ", time_add)
 	print("nosync remove ", time_remove)
+
+	# -------------
+
+	x = XSceneManager.get_x_scene(p)
+
+	time_add = 0.0
+	time_remove = 0.0
+
+	for j in range(m):
+		var a = []
+		for i in range(n):
+			a.push_back(scene1)
+
+		time_begin = OS.get_ticks_usec()
+		x.add_scenes(a)
+		time_add += (OS.get_ticks_usec() - time_begin) / 1000000.0
+
+		time_begin = OS.get_ticks_usec()
+		x.remove_scenes(x.active)
+		time_remove += (OS.get_ticks_usec() - time_begin) / 1000000.0
+
+	x.free()
+
+	time_add /= m
+	time_remove /= m
+
+	print("nosync add bulk", time_add)
+	print("nosync remove bulk", time_remove)

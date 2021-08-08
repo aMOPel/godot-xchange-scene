@@ -105,14 +105,13 @@ time was averaged.
 |free()|0.090902|0.098739|
 |remove_scene(FREE)|0.098556|0.099513|
 
-Theses measurements aren't exactly statistically significant but they give a good 
+These measurements aren't exactly statistically significant but they give a good 
 idea of the overhead added by this plugin, especially when using sync. Note that
 the overhead is more or less independent of sync when removing scenes.
 
 ## TODO
 
-  - wrapper for arbitrary amounts of scenes, eg add_scenes([NodePath, ...])
-
+  - You can open an issue if you're missing a feature
 ## Attributions
 
 Icons made by [Freepik](https://www.freepik.com) from

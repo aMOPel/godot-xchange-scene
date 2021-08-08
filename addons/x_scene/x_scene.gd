@@ -316,6 +316,38 @@ func x_add_scene(
 	remove_scene(key_from, method_from, deferred)
 
 
+func add_scenes(
+	scenes: Array,
+	keys = count,
+	method := defaults.method_add,
+	deferred := defaults.deferred,
+	recursive_owner := defaults.recursive_owner
+):
+	if keys is int:
+		assert(keys == count, "add_scenes: key must be array if it isn't count")
+		for s in scenes:
+			add_scene(s, count, method, deferred, recursive_owner)
+	elif keys is Array:
+		assert(
+			scenes.size() == keys.size(),
+			"add_scenes: scenes and keys must be same size"
+		)
+		for i in range(scenes.size()):
+			add_scene(scenes[i], keys[i], method, deferred, recursive_owner)
+
+
+func remove_scenes(
+	keys: Array, method := defaults.method_remove, deferred := defaults.deferred
+):
+	for k in keys:
+		remove_scene(k, method, deferred)
+
+
+func show_scenes(keys: Array, deferred := defaults.deferred):
+	for k in keys:
+		show_scene(k, deferred)
+
+
 func pack(path):
 	if self.root == null:
 		return
@@ -431,5 +463,3 @@ func debug():
 	# get_node("/root").print_stray_nodes()
 	get_node("/root").print_tree_pretty()
 	print(s)
-
-# TODO add batch adding/removing
