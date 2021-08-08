@@ -8,3 +8,8 @@
 /icon.svg           export-ignore
 /example            export-ignore
 /test               export-ignore
+/addons/gut               export-ignore
+crime-scene.png         export-ignore
+crime-scene.png.import         export-ignore
+default_env.tres         export-ignore
+icon.png.import         export-ignore
