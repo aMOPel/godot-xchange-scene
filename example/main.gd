@@ -37,7 +37,7 @@ func tutorial_basics():
 	# gives instance of XScene with x.root = $"World"
 	# x adds and removes scenes below x.root
 	# it takes a Node
-	var x = XSceneManager.get_x_scene($"World")
+	var x = XSceneManager.get_x_scene($World)
 	# or a NodePath
 	# var x = XSceneManager.get_x_scene(@"World")
 	# the Node has to be in the scenetree
