@@ -1,6 +1,6 @@
-![EXchangeScene](https://raw.githubusercontent.com/aMOPel/godot-EXchangeScene/main/crime-scene.png)
+![xchange-scene](https://raw.githubusercontent.com/aMOPel/godot-xchange-scene/main/crime-scene.png)
 
-# EXchangeScene
+# xchange-scene
 
 __Robust, high level interface__ for manipulating scenes below a given `NodePath`
 
@@ -10,7 +10,7 @@ which is added as a __child scene__ to the tree, and which is also a __Node__._
 Inspired by [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually).
 
-## TL;DR
+### TL;DR
 Scenes can be in these __states__:
 
 | state | function used | consequence |
@@ -134,7 +134,7 @@ x.pack("res://example/test.scn")
 x.remove_scenes(x.scenes.keys())
 ```
 
-## Features
+### Features
 
   - __Indexing and easy access__
     + All scenes managed by this plugin will be indexed in a dictionary, have 'keys' (identifiers) associated with them and can be accessed either one by one or grouped by state.
@@ -152,7 +152,7 @@ x.remove_scenes(x.scenes.keys())
   - __Bulk functions__
     + To add/show/remove many nodes at once
 
-## Why not just use `get_tree().change_scene()`?
+#### Why not just use `get_tree().change_scene()`?
 
 See [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually)
@@ -163,18 +163,17 @@ plugin might be for you.__
 
 With the commands from this plugin you can __more granularly control__ which
 part of the whole current scene you want to change and how you want to change it.
-[See above](#TL;DR) for possibilities. This is especially interesting for __better control over memory__.
+See [__example/main.gd__](example/main.gd) for possibilities. This is especially interesting for __better control over memory__.
 
-## Installation
+### Installation
 
 _Made with Godot version 3.3.2.stable.official_
 
 This repo is in a __Godot Plugin format__.
 
 You can:
-1. install it over the __AssetLib__
-Or
-2. download a __.zip__ of this repo and put it in your project
+- install it over the __AssetLib__ or
+- download a __.zip__ of this repo and put it in your project
 
 For more details, read the [godot docs on installing Plugins
 ](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html)
@@ -183,12 +182,12 @@ __Don't forget to enable it in your project settings!__
 
 To run the examples yourself, you can
 1. Clone this repo 
-`git clone https://github.com/aMOPel/godot-EXchangeScene.git xscene`
+`git clone https://github.com/aMOPel/godot-xchange-scene.git xscene`
 2. Run godot in it (eg. using linux and bash)
 `cd xscene; godot --editor`
 3. Comment and uncomment the functions in [__example/main.gd__](example/main.gd) `_ready()`
 
-## Usage
+### Usage
 
 In the [__example/main.gd__](example/main.gd) you can see how to use it.
 
@@ -209,10 +208,10 @@ var x = XSceneManager.get_x_scene($World)
 ```
 
 This will give you an instance of `XScene` (the main class), which acts below
-`NodePath`. However in the `SceneTree` it sits below the `AutoLoad` `XSceneManager` Node,
+`World`. However in the `SceneTree` it sits below the `AutoLoad` `XSceneManager` Node,
 so it's not cluttering your scenes.
 
-### Transistions
+#### Transistions
 
 
 | from\to | ACTIVE = 0 | HIDDEN = 1 | STOPPED = 2 | FREE = 3 |
@@ -234,16 +233,16 @@ to `true`.
 __NOTE__: Although this plugin resembles a state machine, it isn't implemented as
 one.
 
-### Caveats
+#### Caveats
 
-  - This plugin adds an __overhead__ to adding and removing scenes. When you add or remove in __high quantities__, you should consider using the __built-in commands__ if you don't have to index the scenes so thoroughly.
-  - The __sync feature__ adds __more overhead__ and should also only be used for __small quantities__ of scenes. Mind that this feature, checks for every addition in the whole tree, so if you were to have a few XScene instances with sync enabled, every instances will make checks and add even more overhead
+  - This plugin adds an __overhead__ to adding and removing scenes. When you add or remove in __high quantities__, you should consider using the __built-in commands__, if you don't have to index the scenes so thoroughly.
+  - The __sync feature__ adds __more overhead__ and should also only be used for __small quantities__ of scenes. Mind that this feature checks for every addition in the whole tree. So if you were to have a few `XScene` instances with sync enabled, every instances will make checks and add even more overhead
 
 Here are some really __basic benchmarks__ taken on my mediocre personal PC.
 
 This comes from adding (ACTIVE) and removing (FREE) __1000 instances__ of a scene
 that consists of 4 nodes below `NodePath`. Every test was done __10 times__ and the
-time was averaged.
+time was averaged. In [__example/main.gd__](example/main.gd) `test_time()` you can see the code used.
 
 |X|no sync|sync|
 |---|---|---|
@@ -256,11 +255,11 @@ These measurements aren't exactly statistically significant, but they give a goo
 idea of the __overhead__ added by this plugin, especially when using __sync__. Note that
 the overhead is more or less independent of sync when removing scenes.
 
-## TODO
+### TODO
 
   - You can open an issue if you're missing a feature
 
-## Attributions
+### Attributions
 
 Icon made by [Freepik](https://www.freepik.com) from
 [Flaticon](https://www.flaticon.com/)
