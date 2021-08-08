@@ -15,7 +15,8 @@ It exchanges the whole current scene against another whole scene. Only the
 AutoLoads are transferred automatically. If that doesn't cut it for you, this
 plugin might be for you.
 
-With the commands above you can more granularly control which part of the whole
+With the commands from this plugin you can more granularly control which part of 
+the whole
 current scene you want to change and how you want to change it. See above for
 possibilities. This is especially interesting for better control over memory.
 
@@ -28,14 +29,19 @@ possibilities. This is especially interesting for better control over memory.
     + HIDDEN  `Node.hide()` running and hidden
     + STOPPED `.remove_child(Node)` not running but still in memory
     + FREE    `Node.free()` and no longer in memory and no longer tracked
-  - All of these can be called deferred for (thread) safety
-  - All scenes managed by this interface will be tracked in a dictionary, have 'keys' (identifiers) associated with them and can be accessed either one by one or grouped by state.  
-  - The validity of nodes is always checked before accessed (lazily), so even if you `free()` a Node somewhere else you wont get a invalid reference from this interface. 
-  - Also external `Node.hide()` , `Node.show()` and `.remove_child(Node)` are checked lazily
-  - In addition you can keep in sync with external additions to the tree (this will be slow when you add a lot of Nodes below the NodePath externally)
-  - Ownership management of nodes added below NodePath, so you can `.pack(NodePath)` and save the whole created scene to file later
-  - Subscene support, instances of the XScene class will `self.queue_free()`, when NodePath was freed, thus preventing errors when trying to manipulating scenes below a freed node.  
-    + So it's good practice to have a condition `if is_instance_valid(XScene_instance):` in the beginning of every function and after every yield when planing to use that instance
+  - Optional deferred calls
+    + All of the operations can be called deferred for (thread) safety
+  - Indexing and easy access
+    + All scenes managed by this plugin will be indexed in a dictionary, have 'keys' (identifiers) associated with them and can be accessed either one by one or grouped by state. 
+  - Lazy validity checks on access
+    + The validity of nodes is always checked before accessed (lazily), so even if you `free()` a Node somewhere else you wont get an invalid reference from this plugin.  Also external `Node.hide()` , `Node.show()` and `.remove_child(Node)` are checked lazily
+  - Active sync
+    + You can keep in sync with external additions to the tree (this will be slow when you add a lot of Nodes below the NodePath externally)
+  - Ownership management / pack() support
+    + Node.owner of nodes added below NodePath can be set recursively, so you can `.pack(NodePath)` and save the whole created scene to file later
+  - Subscene support / self validity check
+    + Instances of the XScene class will `self.queue_free()`, when NodePath was freed, thus preventing errors when trying to manipulating scenes below a freed node
+    + So it's good practice to have a condition `if is_instance_valid(XScene_instance):` in the beginning of every function and after every yield when planing to use a XScene instance
 
 ## Installation
 
@@ -61,12 +67,12 @@ The states are just an enum, so you can also use the integers, but writing out
 the names helps readability of your code.
 
 Normally the visibility of a node (HIDDEN) and if it's in the tree or not 
-(STOPPED), are unrelated. However, in this interface it's either or. Meaning, 
-when a hidden scene is stopped, its visibility will be reset to true. And when a
+(STOPPED), are unrelated. However, in this plugin it's either or. Meaning, when 
+a hidden scene is stopped, its visibility will be reset to true. And when a
 stopped scene happened to also be hidden, `show_scene` will reset its visibility 
 to true.
 
-NOTE: Although this interface resembles a state machine, it isn't implemented as 
+NOTE: Although this plugin resembles a state machine, it isn't implemented as 
 one.
 
 ## Usage
@@ -75,22 +81,16 @@ one.
 
 This plugin, while it is active, adds an AutoLoad named `XSceneManager` to your 
 project.
-Eg.
 
-`var sw = XSceneManager.get_x_scene(NodePath)`
+`var x = XSceneManager.get_x_scene(NodePath)`
 
 gives you an instance of XScene, which acts below `NodePath`, but in the tree it 
 sits below the AutoLoad XSceneManager Node, so it's not cluttering your scenes.
 
 ## Caveats
 
-  - this interface adds an overhead to adding and removing scenes. When you add 
-      or remove in high quantities, you should consider using the built-in 
-      commands if you don't have to index the scenes so thoroughly.
-  - the sync feature adds more overhead and should also only be used for small 
-      quantities of scenes. Mind that this feature, checks for every addition in 
-      the whole tree, so if you were to have a few XScene instances with sync 
-      enabled, every instances will make checks and add even more overhead
+  - This plugin adds an overhead to adding and removing scenes. When you add or remove in high quantities, you should consider using the built-in commands if you don't have to index the scenes so thoroughly.
+  - The sync feature adds more overhead and should also only be used for small quantities of scenes. Mind that this feature, checks for every addition in the whole tree, so if you were to have a few XScene instances with sync enabled, every instances will make checks and add even more overhead
 
 Here are some really basic benchmarks taken on my mediocre personal PC.
 
@@ -105,8 +105,9 @@ time was averaged.
 |free()|0.090902|0.098739|
 |remove_scene(FREE)|0.098556|0.099513|
 
-Theses measurements aren't exactly statistically significant but it gives a good 
-idea of the overhead added by this interface, especially when using sync.
+Theses measurements aren't exactly statistically significant but they give a good 
+idea of the overhead added by this plugin, especially when using sync. Note that
+the overhead is more or less independent of sync when removing scenes.
 
 ## TODO
 
