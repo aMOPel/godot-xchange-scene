@@ -58,20 +58,22 @@ var active := [] setget _dont_set, get_active
 var hidden := [] setget _dont_set, get_hidden
 var stopped := [] setget _dont_set, get_stopped
 
-var count := 1 setget _dont_set
-
 var root: Node setget _dont_set, get_root
 var path: NodePath setget _dont_set
 var flag_sync: bool setget _dont_set
 
 var _adding_scene := false setget _dont_set
+var _removing_scene := false setget _dont_set
 
-var defaults = {
+var defaults := {
 	deferred = false,
 	recursive_owner = false,
 	method_add = ACTIVE,
 	method_remove = FREE,
+	count_start = 1
 }
+
+var count: int = defaults.count_start setget _dont_set
 
 
 func _init(p, synchronize := false):
@@ -134,11 +136,13 @@ func get_root() -> Node:
 		self.queue_free()
 	return root
 
+
 func x(key):
 	if _check_scene(key):
 		return scenes[key].scene
 	else:
 		print_debug("XScene x: key invalid")
+
 
 func add_scene(
 	scene,
@@ -170,7 +174,7 @@ func add_scene(
 		if deferred:
 			root.call_deferred("add_child", s)
 			# TODO check if this is necessary
-			# yield(s, "tree_entered")
+			yield(s, "tree_entered")
 		else:
 			root.add_child(s)
 		_adding_scene = false
@@ -211,6 +215,7 @@ func show_scene(key = count, deferred := defaults.deferred):
 				_adding_scene = true
 				if deferred:
 					root.call_deferred("add_child", s.scene)
+					yield(s.scene, "tree_entered")
 				else:
 					root.add_child(s.scene)
 				if s.scene is CanvasItem and not s.scene.visible:
@@ -245,18 +250,24 @@ func remove_scene(
 					s.status = HIDDEN
 			STOPPED:
 				if s.status != STOPPED:
+					_removing_scene = true
 					if deferred:
 						root.call_deferred("remove_child", s.scene)
+						s.status = STOPPED
+						yield(s.scene, "tree_exited")
 					else:
 						root.remove_child(s.scene)
+						s.status = STOPPED
 					if s.scene is CanvasItem and s.status == HIDDEN:
 						s.scene.show()
-					s.status = STOPPED
+					_removing_scene = false
 			FREE:
+				_removing_scene = true
 				if deferred:
 					s.scene.queue_free()
 				else:
 					s.scene.free()
+				_removing_scene = false
 				scenes.erase(key)
 	else:
 		assert(false, "remove_scene: key invalid")
@@ -361,6 +372,8 @@ func _check_scene(key, single := true) -> bool:
 	if single:
 		if ! (key in scenes):
 			return false
+	if _removing_scene:
+		yield(get_tree(), "idle_frame")
 
 	var s = scenes[key]
 
