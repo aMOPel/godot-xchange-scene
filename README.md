@@ -16,6 +16,7 @@ In the [__example/main.gd__](example/main.gd) you can see how to use it.
 
 ```gdscript
 var scene1 = preload("scene1.tscn")
+# x adds and removes scenes below World
 var x = XSceneManager.get_x_scene($"World")
 
 # is indexed automatically with integer 1
@@ -101,11 +102,9 @@ x.x_scene("a", "stopped_s1", x.FREE)
 
 # to access ("x"ess) the scene of "a" directly
 x.x("a").hide()
-# to get all keys of hidden scenes
-x.hidden
 # to access all hidden scenes directly
 x.xs(x.HIDDEN)
-# put it into a file
+# put $World into a file
 x.pack("res://example/test.scn")
 # free everything below
 x.remove_scenes(x.scenes.keys())
