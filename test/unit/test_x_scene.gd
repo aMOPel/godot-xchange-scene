@@ -46,7 +46,8 @@ class TestAdd:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = XSceneManager.get_x_scene(n.get_path())
+		sw = XScene.new(n, false, true)
+		# sw = XSceneManager.get_x_scene(n.get_path())
 
 	func after_each():
 		for s in sw.scenes.values():
@@ -88,11 +89,10 @@ class TestAdd:
 
 	func test_add_deferred():
 		sw.add_scene(s1, sw.count, 0, true)
-		var s = sw.scenes[1]
-		assert_true(is_instance_valid(s.scene))
-		assert_false(s.scene.is_inside_tree())
-		assert_false(sw.root.is_a_parent_of(s.scene))
+		assert_true(sw.scenes.empty())
+		assert_eq(sw.root.get_child_count(), 1)
 		yield(get_tree(), "idle_frame")
+		var s = sw.scenes[1]
 		assert_true(s.scene.is_inside_tree())
 		assert_true(sw.root.is_a_parent_of(s.scene))
 
@@ -113,7 +113,8 @@ class TestShow:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = XSceneManager.get_x_scene(n.get_path())
+		sw = XScene.new(n, false, true)
+		# sw = XSceneManager.get_x_scene(n.get_path())
 		sw.add_scene(s1, sw.count, sw.HIDDEN)
 		sw.add_scene(s1, sw.count, sw.STOPPED)
 
@@ -158,7 +159,8 @@ class TestRemove:
 		gut.p("ran teardown")
 
 	func before_each():
-		sw = XSceneManager.get_x_scene(n.get_path())
+		sw = XScene.new(n, false, true)
+		# sw = XSceneManager.get_x_scene(n.get_path())
 		sw.add_scene(s1, sw.count, sw.ACTIVE)
 		sw.add_scene(s1, sw.count, sw.HIDDEN)
 		sw.add_scene(s1, sw.count, sw.STOPPED)

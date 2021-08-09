@@ -7,7 +7,7 @@ var scene3 = preload("scene3.tscn")
 
 func _ready():
 	# the basic usage
-	tutorial_basics()
+	# tutorial_basics()
 
 	# bulk functions
 	# tutorial_bulk()
@@ -30,8 +30,15 @@ func _ready():
 	# the benchmark code that was used for the README
 	# tutorial_time()
 
+	test()
+
 	pass
 
+func test():
+	var x = XScene.new($World, true, true)
+	x.add_scene(scene1)
+	# get_node("/root").print_tree_pretty()
+	print(x.scenes)
 
 func tutorial_basics():
 	# gives instance of XScene with x.root = $"World"

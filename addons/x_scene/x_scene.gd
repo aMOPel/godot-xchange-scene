@@ -61,6 +61,7 @@ var stopped := [] setget _dont_set, get_stopped
 var root: Node setget _dont_set, get_root
 var path: NodePath setget _dont_set
 var flag_sync: bool setget _dont_set
+var flag_add_self: bool setget _dont_set
 
 var _adding_scene := false setget _dont_set
 var _removing_scene := false setget _dont_set
@@ -76,14 +77,26 @@ var defaults := {
 var count: int = defaults.count_start setget _dont_set
 
 
-func _init(p, synchronize := false):
+func _init(
+	p, synchronize := false, add_self := false, parameter_defaults := defaults
+):
+	flag_add_self = add_self
+	flag_sync = synchronize
+	defaults = parameter_defaults
+
 	if p is NodePath:
 		path = p
+		if add_self:
+			assert(
+				false,
+				"x_scene _init: add_self flag requires Node, not NodePath to be passed, to work"
+			)
 	elif p is Node:
 		root = p
+		if add_self:
+			p.add_child(self)
 	else:
 		assert(false, "x_scene _init: input p must be NodePath or Node")
-	flag_sync = synchronize
 
 
 func _ready():
@@ -102,7 +115,8 @@ func _ready():
 		var children = root.get_children()
 		if children:
 			for s in children:
-				_on_node_added(s)
+				if s != self:
+					_on_node_added(s)
 
 
 func _dont_set(a):
