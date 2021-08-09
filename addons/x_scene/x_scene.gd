@@ -143,7 +143,8 @@ func x(key):
 	else:
 		print_debug("XScene x: key invalid")
 
-func xs(method=null):
+
+func xs(method = null):
 	_check_scenes(method)
 	var a := []
 	if method == null:
@@ -262,6 +263,8 @@ func remove_scene(
 					s.status = HIDDEN
 			STOPPED:
 				if s.status != STOPPED:
+					if s.scene is CanvasItem and s.status == HIDDEN:
+						s.scene.show()
 					_removing_scene = true
 					if deferred:
 						root.call_deferred("remove_child", s.scene)
@@ -270,8 +273,6 @@ func remove_scene(
 					else:
 						root.remove_child(s.scene)
 						s.status = STOPPED
-					if s.scene is CanvasItem and s.status == HIDDEN:
-						s.scene.show()
 					_removing_scene = false
 			FREE:
 				_removing_scene = true
@@ -445,13 +446,14 @@ func _on_node_added(node: Node):
 	if self.root == null:
 		return
 	if node.get_parent() == root:
-		var d := {}
-		d.scene = node
-		if node is CanvasItem and not node.visible:
-			d.status = HIDDEN
-		else:
-			d.status = ACTIVE
-		scenes[count] = d
+		scenes[count] = {
+			scene = node,
+			status = (
+				HIDDEN
+				if (node is CanvasItem and not node.visible)
+				else ACTIVE
+			)
+		}
 
 		count += 1
 
