@@ -2,7 +2,7 @@
 
 # xchange-scene
 
-__Robust, high level interface__ for manipulating scenes below a given `NodePath`
+Xchange-scene is a __robust, high level interface__ for manipulating and indexing scenes below a given `Node` or `NodePath`.
 
 _Disclaimer: In the following, when talking about __scenes__, often it's about the __instance__ of the scene,
 which is added as a __child scene__ to the tree, and which is also a __Node__._

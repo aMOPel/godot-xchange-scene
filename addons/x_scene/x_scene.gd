@@ -475,3 +475,5 @@ func debug():
 	# get_node("/root").print_stray_nodes()
 	get_node("/root").print_tree_pretty()
 	print(s)
+
+# TODO self managing attached below x.root
