@@ -51,21 +51,51 @@ extends Node
 
 # warnings-disable
 
+## enum with the scene states
+## @ACTIVE = 0 uses add_child()
+## @HIDDEN = 1 uses .hide()
+## @STOPPED = 2 uses remove_child()
+## @FREE = 3 uses .free()
 enum { ACTIVE, HIDDEN, STOPPED, FREE }
 
+## Dictionary that holds all indexed scenes and their status
+##
+## Eg. {1:{scene:[Node2D:1235], status:0}, a:{scene:[Node2D:1239], status:1}}
 var scenes := {} setget _dont_set, get_scenes
+## Array of keys of active scenes
 var active := [] setget _dont_set, get_active
+## Array of keys of hidden scenes
 var hidden := [] setget _dont_set, get_hidden
+## Array of keys of stopped scenes
 var stopped := [] setget _dont_set, get_stopped
 
+## the Node below which this class will manipulate scenes
 var root: Node setget _dont_set, get_root
+## the NodePath to @root
 var path: NodePath setget _dont_set
+## wether to synchronize @scenes with external additions to the tree
+## WARNING this can be slow
 var flag_sync: bool setget _dont_set
+## wether to add this instance below @root
+## if false XSceneManager.get_x_scene() should be used
 var flag_add_self: bool setget _dont_set
 
+## true if currently adding a scene
+## this is interesting for the sync feature and deferred adding
 var _adding_scene := false setget _dont_set
+## true if currently removing a scene
+## this is interesting for @_check_scene() and deferred removing
 var _removing_scene := false setget _dont_set
 
+## Dictionary that hold the default values for parameters used in add/show/remove
+##
+## if you change the values to something not of its original type, things will break
+##
+## @deferred = false,
+## @recursive_owner = false,
+## @method_add = ACTIVE,
+## @method_remove = FREE,
+## @count_start = 1
 var defaults := {
 	deferred = false,
 	recursive_owner = false,
@@ -74,12 +104,20 @@ var defaults := {
 	count_start = 1
 }
 
+## automatically incrementing counter used as key when none is provided
+## starting value can be set in @defaults and defaults to 1
 var count: int = defaults.count_start setget _dont_set
 
 
+## init for XScene
+##
+## @p Node / NodePath ; determines @root and @path
+## @synchronize bool ; default: false ; wether to synchronize @scenes with external additions to the tree
+## @add_self bool ; default: false ; wether to add this instance below @root, only works if @p is Node
+## @parameter_defaults Dictionary ; default: @defaults 
 func _init(
 	p, synchronize := false, add_self := false, parameter_defaults := defaults
-):
+) -> void:
 	flag_add_self = add_self
 	flag_sync = synchronize
 	defaults = parameter_defaults
@@ -99,7 +137,7 @@ func _init(
 		assert(false, "x_scene _init: input p must be NodePath or Node")
 
 
-func _ready():
+func _ready() -> void:
 	if path:
 		root = get_node(path)
 	elif root:
@@ -119,7 +157,7 @@ func _ready():
 					_on_node_added(s)
 
 
-func _dont_set(a):
+func _dont_set(a) -> void:
 	assert(false, "do not set anything in XScene manually")
 
 
@@ -143,6 +181,8 @@ func get_scenes() -> Dictionary:
 	return scenes
 
 
+## return @root, but first check if @root is still valid
+## this is called everywhere in this class where @root will be accessed
 func get_root() -> Node:
 	if not is_instance_valid(root):
 		root = null
@@ -151,14 +191,22 @@ func get_root() -> Node:
 	return root
 
 
-func x(key):
+## "x"ess the scene of @scenes[key]
+func x(key) -> Node:
 	if _check_scene(key):
 		return scenes[key].scene
 	else:
 		print_debug("XScene x: key invalid")
+		return null
 
 
-func xs(method = null):
+## do multiple "x"ess"s", get Array of Nodes based on @method
+##
+## if null return all scenes from @scenes
+## if method specified return only the scenes in the respective state
+##
+## @method null / @ACTIVE / @HIDDEN / @STOPPED ; default: null ; 
+func xs(method = null) -> Array:
 	_check_scenes(method)
 	var a := []
 	if method == null:
@@ -171,13 +219,24 @@ func xs(method = null):
 	return a
 
 
+## add a scene to the tree below @root and to @scenes
+##
+## @ACTIVE uses add_child()
+## @HIDDEN uses add_child() and .hide()
+## @STOPPED only adds to @scenes not to the tree
+##
+## @scene Node / PackagedScene ;
+## @key XScene.count / String ; default: @count ; the key in the Dictionary @scenes
+## @method @ACTIVE / @HIDDEN / @STOPPED ; default: @ACTIVE 
+## @deferred bool ; default: false ; whether to use call_deferred() for tree changes
+## @recursive_owner bool ; default: false ; wether to recursively for all children of @scene set the owner to @root, this is useful for @pack()
 func add_scene(
 	scene,
 	key = count,
 	method := defaults.method_add,
 	deferred := defaults.deferred,
 	recursive_owner := defaults.recursive_owner
-):
+) -> void:
 	if self.root == null:
 		return
 	assert(key is int or key is String, "add_scene: key must be int or String")
@@ -224,7 +283,16 @@ func add_scene(
 		count += 1
 
 
-func show_scene(key = count, deferred := defaults.deferred):
+## make @scenes[key] visible, and update @scenes
+##
+## it uses @_check_scene to verify that the Node is still valid
+##
+## if @HIDDEN it uses .show()
+## if @STOPPED it uses add_child() and .show()
+##
+## @key int / String ; default: @count ; the key in the Dictionary @scenes
+## @deferred bool ; default: false ; whether to use call_deferred() for tree changes
+func show_scene(key = count, deferred := defaults.deferred) -> void:
 	if self.root == null:
 		return
 	if _check_scene(key):
@@ -253,9 +321,20 @@ func show_scene(key = count, deferred := defaults.deferred):
 		assert(false, "show_scene: key invalid")
 
 
+## remove @scenes[key] from @root (or hide) and update @scenes
+##
+## it uses @_check_scene to verify that the Node is still valid
+##
+## @HIDDEN uses .hide()
+## @STOPPED uses remove_child()
+## @FREE uses .free()
+##
+## @key int / String ; default: @count ; the key in the Dictionary @scenes
+## @method @HIDDEN / @STOPPED / @FREE ; default: @FREE
+## @deferred bool ; default: false ; whether to use call_deferred() or queue_free() for tree changes
 func remove_scene(
 	key = count, method := defaults.method_remove, deferred := defaults.deferred
-):
+) -> void:
 	if self.root == null:
 		return
 	assert(
@@ -300,12 +379,20 @@ func remove_scene(
 		assert(false, "remove_scene: key invalid")
 
 
+## make @scenes[key_to] visible and remove @scenes[key_from] from @root and update @scenes
+##
+## it uses @show_scene() and @remove_scene()
+##
+## @key_to int / String ; use @show_scene() with this key
+## @key_from int / String ; default: null ; use @remove_scene() with this key, if null then the last active scene will be used
+## @method_from @HIDDEN / @STOPPED / @FREE ; default: @FREE
+## @deferred bool ; default: false ; whether to use call_deferred() or queue_free() for tree changes
 func x_scene(
 	key_to,
 	key_from = null,
 	method_from := defaults.method_remove,
 	deferred := defaults.deferred
-):
+) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
 		assert(key_from != null, "x_scene: no active scene")
@@ -321,6 +408,17 @@ func x_scene(
 	show_scene(key_to, deferred)
 
 
+## add @scenes[key_to] and remove @scenes[key_from] from @root and update @scenes
+##
+## it uses @add_scene() and @remove_scene()
+##
+## @scene_to Node / PackagedScene ;
+## @key_to XScene.count / String ; default: @count ; use @add_scene() with this key
+## @key_from int / String ; default: null ; use @remove_scene() with this key, if null then the last active scene will be used
+## @method_to @ACTIVE / @HIDDEN / @STOPPED ; default: @ACTIVE 
+## @method_from @HIDDEN / @STOPPED / @FREE ; default: @FREE
+## @deferred bool ; default: false ; whether to use call_deferred() or queue_free() for tree changes
+## @recursive_owner bool ; default: false ; wether to recursively for all children of @scene set the owner to @root
 func x_add_scene(
 	scene_to,
 	key_to = count,
@@ -329,7 +427,7 @@ func x_add_scene(
 	method_from := defaults.method_remove,
 	deferred := defaults.deferred,
 	recursive_owner := defaults.recursive_owner
-):
+) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
 		assert(key_from != null, "x_add_scene: no active scene")
@@ -349,7 +447,7 @@ func add_scenes(
 	method := defaults.method_add,
 	deferred := defaults.deferred,
 	recursive_owner := defaults.recursive_owner
-):
+) -> void:
 	if keys is int:
 		assert(keys == count, "add_scenes: key must be array if it isn't count")
 		for s in scenes:
@@ -365,28 +463,37 @@ func add_scenes(
 
 func remove_scenes(
 	keys: Array, method := defaults.method_remove, deferred := defaults.deferred
-):
+) -> void:
 	for k in keys:
 		remove_scene(k, method, deferred)
 
 
-func show_scenes(keys: Array, deferred := defaults.deferred):
+func show_scenes(keys: Array, deferred := defaults.deferred) -> void:
 	for k in keys:
 		show_scene(k, deferred)
 
 
-func pack(path):
+## pack @root into @filepath using PackedScene.pack()
+##
+## this works together with the @recursive_owner parameter of @add_scene()
+func pack(filepath) -> void:
 	if self.root == null:
 		return
 	var scene = PackedScene.new()
 	if scene.pack(root) == OK:
-		if ResourceSaver.save(path, scene) != OK:
+		if ResourceSaver.save(filepath, scene) != OK:
 			push_error(
 				"x_scene pack: An error occurred while saving the scene to disk."
 			)
 
 
-func _check_scenes(method = null):
+## check multiple scenes with @_check_scene()
+##
+## this gets called by the getters for @scenes, @active, @hidden, @stopped and @xs()
+## if null updates @scenes, else update only the respective array
+##
+## @method null / @ACTIVE / @HIDDEN / @STOPPED ; default: null ;
+func _check_scenes(method = null) -> void:
 	var dead_keys = []
 	if method == null:
 		for k in scenes:
@@ -425,6 +532,12 @@ func _check_scenes(method = null):
 		)
 
 
+## check if @key scene is still valid and update its status in @scenes
+##
+## if the scene is no longer valid it erases the key from @scenes
+## it waits until after @remove_scene() is done
+##
+## @single bool ; default: true ; has to be false when iterating over @scenes, because you can't erase a key then
 func _check_scene(key, single := true) -> bool:
 	if key == null:
 		return false
@@ -454,7 +567,11 @@ func _check_scene(key, single := true) -> bool:
 		return false
 
 
-func _on_node_added(node: Node):
+## add @node to @scenes with key = @count if @node is child of @root
+##
+## if @flag_sync is true it is connected to the get_tree() "node_added", also it gets called in _ready() to added preexisting nodes
+## it is skipped when adding nodes with @add_scene() or @show_scene()
+func _on_node_added(node: Node) -> void:
 	if _adding_scene:
 		return
 	if self.root == null:
@@ -472,14 +589,8 @@ func _on_node_added(node: Node):
 		count += 1
 
 
-func _to_string():
-	var s = "[["
-	s += self.get_class() + ":"
-	s += self.get_instance_id() as String + "]]"
-	return s
-
-
-func debug():
+# print debug information
+func debug() -> void:
 	var s = ""
 	s += "active: " + active as String + "\n"
 	s += "hidden: " + hidden as String + "\n"
@@ -493,3 +604,5 @@ func debug():
 	print(s)
 
 # TODO self managing attached below x.root
+# write tests
+# write documentation
