@@ -2,7 +2,7 @@
 
 # xchange-scene
 
-Xchange-scene is a __robust, high level interface__ for manipulating and indexing scenes below a given `Node` or `NodePath`.
+Xchange-scene is a __robust, high level interface__ for manipulating and indexing scenes below a given `Node`.
 
 _Disclaimer: In the following, when talking about __scenes__, often it's about the __instance__ of the scene,
 which is added as a __child scene__ to the tree, and which is also a __Node__._
@@ -26,8 +26,12 @@ Here is a first taste:
 
 ```gdscript
 var scene1 = preload("scene1.tscn")
-# x adds and removes scenes below World, takes Node or NodePath
-var x = XSceneManager.get_x_scene($World)
+# x adds and removes scenes below $World
+# adds itself to the tree below $World
+var x = XScene.new($World)
+
+# this is a reference to the $World
+var r = x.root
 
 # add_scene takes a PackedScene or a Node
 # without a key specified it indexes automatically with integers starting at 1
@@ -40,8 +44,6 @@ x.add_scene(scene1, "a", x.HIDDEN)
 x.add_scene(scene1, "stopped_s1", x.STOPPED)
 
 # ┖╴root
-# 	┠╴XSceneManager <- AutoLoad
-# 	┃  ┖╴@@2 <- x
 # 	┖╴Main
 # 	   ┠╴Gui
 # 	   ┃  ┖╴ColorRect
@@ -62,9 +64,9 @@ x.add_scene(scene1, "stopped_s1", x.STOPPED)
 # 	   ┖╴Test
 
 print(x.scenes)
-# {1:{scene:[Node2D:1235], status:0}, -> ACTIVE
-# a:{scene:[Node2D:1239], status:1}, -> HIDDEN
-# stopped_s1:{scene:[Node2D:1243], status:2}} -> STOPPED
+# {1:{scene:[Node2D:1235], state:0}, -> ACTIVE
+# a:{scene:[Node2D:1239], state:1}, -> HIDDEN
+# stopped_s1:{scene:[Node2D:1243], state:2}} -> STOPPED
 
 # uses remove_child()
 x.remove_scene(1, x.STOPPED)
@@ -127,7 +129,7 @@ x.x("a").hide()
 x.xs(x.HIDDEN)
 
 # put $World into a file using PackedScene.pack()
-x.pack("res://example/test.scn")
+x.pack_root("res://example/test.scn")
 
 # .free() everything indexed by x, remove_scene/s defaults to FREE
 # mind the plural
@@ -139,15 +141,15 @@ x.remove_scenes(x.scenes.keys())
   - __Indexing and easy access__
     + All scenes managed by this plugin will be indexed in a dictionary, have 'keys' (identifiers) associated with them and can be accessed either one by one or grouped by state.
   - __Lazy validity checks__ on access
-    + The validity of Nodes below `NodePath` is always checked before accessed (lazily), so even if you `free()` a Node somewhere else, you wont get an invalid reference from this plugin.  Also external calls to `Node.hide()` , `Node.show()` and `.remove_child(Node)` are checked lazily
+    + The validity of Nodes below `root` is always checked before accessed (lazily), so even if you `free()` a Node somewhere else, you wont get an invalid reference from this plugin.  Also external calls to `Node.hide()` , `Node.show()` and `.remove_child(Node)` are checked lazily
   - __Active sync__
     + You can keep in sync with __external additions__ to the tree (this can be slow, see [Caveats](#Caveats))
   - __Deferred calls__
     + All of the operations can be called deferred for __(thread) safety__
   - __Ownership management__ and `pack()` support
-    + `Node.owner` of nodes added below `NodePath` can be set __recursively__, so you can `pack()` and save the whole created scene to file later
+    + `Node.owner` of nodes added below `root` can be set __recursively__, so you can `pack_root()` and save the whole created scene to file later
   - __Self validity check__
-    + Instances of the __XScene__ class will `self.queue_free()`, when `NodePath` was freed, thus preventing errors when trying to manipulating scenes below a freed Node
+    + Instances of the __XScene__ class will `self.queue_free()`, when `root` was freed, thus preventing errors when trying to manipulating scenes below a freed Node
     + So it's good practice to have a condition `if is_instance_valid(XScene_instance):` in the beginning of every function and after every `yield` when planing to use a `XScene` instance
   - __Bulk functions__
     + To add/show/remove many nodes at once
@@ -191,25 +193,23 @@ To run the examples yourself, you can
 
 In the [__example/main.gd__](example/main.gd) you can see how to use it.
 
-This plugin, while it is enabled, adds an `AutoLoad` named `XSceneManager` to
-your project.
-
 ```gdscript
 # example/main.gd
 
-var x = XSceneManager.get_x_scene($World)
+# gives an instance of XScene
+# it adds itself below $World
+# it doesn't index itself
+x = XScene.new($World)
 # ┖╴root
-# 	┠╴XSceneManager <- AutoLoad
-# 	┃  ┖╴@@2 <- x
 # 	┖╴Main
 # 	   ┠╴Gui
 # 	   ┃  ┖╴ColorRect
-# 	   ┠╴World <- acts below World
+# 	   ┖╴World <- acts below World
+# 	      ┖╴@@2 <- x
 ```
 
-This will give you an instance of `XScene` (the main class), which acts below
-`World`. However in the `SceneTree` it sits below the `AutoLoad` `XSceneManager` Node,
-so it's not cluttering your scenes.
+This will give you an instance of `XScene` (the main class), which acts at sits below
+`World`. 
 
 #### Transistions
 
@@ -241,7 +241,7 @@ one.
 Here are some really __basic benchmarks__ taken on my mediocre personal PC.
 
 This comes from adding (ACTIVE) and removing (FREE) __1000 instances__ of a scene
-that consists of 4 nodes below `NodePath`. Every test was done __10 times__ and the
+that consists of 4 nodes below `root`. Every test was done __10 times__ and the
 time was averaged. In [__example/main.gd__](example/main.gd) `test_time()` you can see the code used.
 
 |X|no sync|sync|
