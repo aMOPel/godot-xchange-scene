@@ -253,16 +253,20 @@ func add_scene(
 	elif scene is Node:
 		s = scene
 	else:
-		assert(false, "add_scene: input scene must be PackedScene or Node")
+		assert(false, "XScene.add_scene: input scene must be PackedScene or Node")
 
 	if method != STOPPED:
 		_adding_scene = true
 		if deferred:
 			root.call_deferred("add_child", s)
-			# TODO check if this is necessary
+			# count must be incremented before yield
+			if key is int:
+				count += 1
 			yield(s, "tree_entered")
 		else:
 			root.add_child(s)
+			if key is int:
+				count += 1
 		_adding_scene = false
 
 		if recursive_owner:
