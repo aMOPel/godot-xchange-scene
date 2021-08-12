@@ -2,10 +2,9 @@
 
 # xchange-scene
 
-Xchange-scene is a __robust, high level interface__ for manipulating and indexing scenes below a given `Node`.
+Xchange-scene is a __robust, high level interface__ for manipulating child scenes below a given `Node` and indexing them.
 
-_Disclaimer: In the following, when talking about __scenes__, often it's about the __instance__ of the scene,
-which is added as a __child scene__ to the tree, and which is also a __Node__._
+_Disclaimer: In the following, when talking about __scenes__, often it's about the __instance__ of the scene, which is added as a __child scene__ to the tree, and which is also a __Node__._
 
 Inspired by [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually).
@@ -30,7 +29,7 @@ var scene1 = preload("scene1.tscn")
 # adds itself to the tree below $World
 var x = XScene.new($World)
 
-# this is a reference to the $World
+# this is a reference to $World
 var r = x.root
 
 # add_scene takes a PackedScene or a Node
@@ -43,62 +42,68 @@ x.add_scene(scene1, "a", x.HIDDEN)
 # just instances and indexes the scene
 x.add_scene(scene1, "stopped_s1", x.STOPPED)
 
+get_node("/root").print_tree_pretty()
 # ┖╴root
-# 	┖╴Main
-# 	   ┠╴Gui
-# 	   ┃  ┖╴ColorRect
-# 	   ┠╴World
-# 	   ┃  ┠╴Node2D <- was already in the tree via editor
-# 	   ┃  ┃  ┖╴Node2D
-# 	   ┃  ┃     ┖╴Node2D
-# 	   ┃  ┃        ┖╴icon
-# 	   ┃  ┠╴@Node2D@3 <- 1
-# 	   ┃  ┃  ┖╴Node2D
-# 	   ┃  ┃     ┖╴Node2D
-# 	   ┃  ┃        ┖╴icon
-# 	   ┃  ┖╴@Node2D@4 <- "a" hidden but in tree
-# 	   ┃     ┖╴Node2D
-# 	   ┃        ┖╴Node2D
-# 	   ┃           ┖╴icon
-# 	   ┃              <- "stopped_s1" not in the tree
-# 	   ┖╴Test
+#    ┖╴Main
+#       ┠╴Gui
+#       ┃  ┖╴ColorRect
+#       ┠╴World
+#       ┃  ┠╴Node2D <- was added by the editor and isn't indexed by default
+#       ┃  ┃  ┖╴Node2D
+#       ┃  ┃     ┖╴Node2D
+#       ┃  ┃        ┖╴icon
+#       ┃  ┠╴@@2 <- x instance
+#       ┃  ┠╴@Node2D@3 <- 1
+#       ┃  ┃  ┖╴Node2D
+#       ┃  ┃     ┖╴Node2D
+#       ┃  ┃        ┖╴icon
+#       ┃  ┖╴@Node2D@4 <- "a" in the tree but hidden
+#       ┃     ┖╴Node2D
+#       ┃        ┖╴Node2D
+#       ┃           ┖╴icon
+#       ┖╴Test
+# "stopped_s1" isnt in the tree
 
 print(x.scenes)
-# {1:{scene:[Node2D:1235], state:0}, -> ACTIVE
-# a:{scene:[Node2D:1239], state:1}, -> HIDDEN
-# stopped_s1:{scene:[Node2D:1243], state:2}} -> STOPPED
+# {1:{scene:[Node2D:1227], state:0}, -> ACTIVE
+# a:{scene:[Node2D:1231], state:1}, -> HIDDEN
+# stopped_s1:{scene:[Node2D:1235], state:2}} -> STOPPED
 
 # uses remove_child()
 x.remove_scene(1, x.STOPPED)
+get_node("/root").print_tree_pretty()
 # ┠╴World
 # ┃  ┠╴Node2D
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
 # ┃  ┃        ┖╴icon
-# ┃  ┖╴@Node2D@4 <- "a" still hidden but in tree
+# ┃  ┠╴@@2
+# ┃  ┖╴@Node2D@4 <- "a" still in tree
 # ┃     ┖╴Node2D
 # ┃        ┖╴Node2D
 # ┃           ┖╴icon
-# ┃              <- 1 no longer in tree
 # ┖╴Test
+# 1 also is no longer in the tree
 
 # make all STOPPED scenes ACTIVE
 # mind the plural
 x.show_scenes(x.stopped)
+get_node("/root").print_tree_pretty()
 # ┠╴World
 # ┃  ┠╴Node2D
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
 # ┃  ┃        ┖╴icon
-# ┃  ┠╴@Node2D@4
+# ┃  ┠╴@@2
+# ┃  ┠╴@Node2D@4 <- "a"
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
 # ┃  ┃        ┖╴icon
-# ┃  ┠╴@Node2D@3 <- 1 active again
+# ┃  ┠╴@Node2D@3 <- 1
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
 # ┃  ┃        ┖╴icon
-# ┃  ┖╴@Node2D@5 <- "stopped_s1" active again
+# ┃  ┖╴@Node2D@5 <- "stopped_s1"
 # ┃     ┖╴Node2D
 # ┃        ┖╴Node2D
 # ┃           ┖╴icon
@@ -107,11 +112,13 @@ x.show_scenes(x.stopped)
 # exchange scene, makes "a" ACTIVE, and uses .free() on "stopped_s1"
 # it defaults to FREE, the argument isn't necessary here
 x.x_scene("a", "stopped_s1", x.FREE)
+get_node("/root").print_tree_pretty()
 # ┠╴World
 # ┃  ┠╴Node2D
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
 # ┃  ┃        ┖╴icon
+# ┃  ┠╴@@2
 # ┃  ┠╴@Node2D@4 <- "a" no longer hidden
 # ┃  ┃  ┖╴Node2D
 # ┃  ┃     ┖╴Node2D
@@ -120,16 +127,20 @@ x.x_scene("a", "stopped_s1", x.FREE)
 # ┃     ┖╴Node2D
 # ┃        ┖╴Node2D
 # ┃           ┖╴icon
-# ┃              <- "stopped_s1" no longer in tree and no longer indexed
 # ┖╴Test
+# "stopped_s1" was freed and is no longer indexed
 
 # to access ("x"ess) the scene/node of "a" directly
 x.x("a").hide()
 # to access all hidden scenes directly, returns an array of nodes
-x.xs(x.HIDDEN)
+print(x.xs(x.HIDDEN))
+# [[Node2D:1231]] <- this is the node/scene of "a" in an array
+# note that a was hidden externally and is still indexed correctly, 
+# this is done lazily, only when accessing that node
 
-# put $World into a file using PackedScene.pack()
+# put x.root and everything indexed into a file using PackedScene.pack() and ResourceSaver.save()
 x.pack_root("res://example/test.scn")
+# this can be loaded later, it includes x.root
 
 # .free() everything indexed by x, remove_scene/s defaults to FREE
 # mind the plural
@@ -139,18 +150,17 @@ x.remove_scenes(x.scenes.keys())
 ### Features
 
   - __Indexing and easy access__
-    + All scenes managed by this plugin will be indexed in a dictionary, have 'keys' (identifiers) associated with them and can be accessed either one by one or grouped by state.
+    + All scenes managed by this plugin will be indexed in a dictionary and can be accessed either one by one or grouped by state.
   - __Lazy validity checks__ on access
-    + The validity of Nodes below `root` is always checked before accessed (lazily), so even if you `free()` a Node somewhere else, you wont get an invalid reference from this plugin.  Also external calls to `Node.hide()` , `Node.show()` and `.remove_child(Node)` are checked lazily
+    + The validity and state of indexed Nodes is always checked before accessed (lazily). This goes for external `.free()`, `.hide()` , `.show()` or `.remove_child(Node)`.
   - __Active sync__
-    + You can keep in sync with __external additions__ to the tree (this can be slow, see [Caveats](#Caveats))
+    + You can keep in sync with __external additions__ to the tree, meaning external `add_child(Node)`. (this can be slow, see [Caveats](#Caveats))
   - __Deferred calls__
-    + All of the operations can be called deferred for __(thread) safety__
+    + All of the tree changes can be called deferred for __(thread) safety__.
   - __Ownership management__ and `pack()` support
-    + `Node.owner` of nodes added below `root` can be set __recursively__, so you can `pack_root()` and save the whole created scene to file later
-  - __Self validity check__
-    + Instances of the __XScene__ class will `self.queue_free()`, when `root` was freed, thus preventing errors when trying to manipulating scenes below a freed Node
-    + So it's good practice to have a condition `if is_instance_valid(XScene_instance):` in the beginning of every function and after every `yield` when planing to use a `XScene` instance
+    + `Node.owner` of nodes added below `root` can be set __recursively__, so you can `pack_root()` and save the whole created scene to file for later.
+  - __Nested Scenes__
+    + Instances of the __XScene__ class will add themselves below `root`, thus freeing themselves when `root` is freed.
   - __Bulk functions__
     + To add/show/remove many nodes at once
 
@@ -163,7 +173,7 @@ docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manual
 AutoLoads are transferred automatically. __If that doesn't cut it for you, this
 plugin might be for you.__
 
-With the commands from this plugin you can __more granularly control__ which
+With the commands from this plugin you can __more granularly control__, which
 part of the whole current scene you want to change and how you want to change it.
 See [__example/main.gd__](example/main.gd) for possibilities. This is especially interesting for __better control over memory__.
 
@@ -174,13 +184,15 @@ _Made with Godot version 3.3.2.stable.official_
 This repo is in a __Godot Plugin format__.
 
 You can:
-- install it over the __AssetLib__ or
-- download a __.zip__ of this repo and put it in your project
+- Install it via __AssetLib__ or
+- Download a __.zip__ of this repo and put it in your project
 
 For more details, read the [godot docs on installing Plugins
 ](https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html)
 
 __Don't forget to enable it in your project settings!__
+
+#### Run examples
 
 To run the examples yourself, you can
 1. Clone this repo 
@@ -188,10 +200,12 @@ To run the examples yourself, you can
 2. Run godot in it (eg. using linux and bash)
 `cd xscene; godot --editor`
 3. Comment and uncomment the functions in [__example/main.gd__](example/main.gd) `_ready()`
+4. Run the main scene in godot
 
 ### Usage
 
-In the [__example/main.gd__](example/main.gd) you can see how to use it.
+In the [__example/main.gd__](example/main.gd) you can see how to use it. 
+There are little __tutorials__ split in functions with __a lot of comments__ to explain everything in detail.
 
 ```gdscript
 # example/main.gd
@@ -208,11 +222,10 @@ x = XScene.new($World)
 # 	      ┖╴@@2 <- x
 ```
 
-This will give you an instance of `XScene` (the main class), which acts at sits below
+This will give you an instance of `XScene` (the main class), which acts and sits below
 `World`. 
 
 #### Transistions
-
 
 | from\to | ACTIVE = 0 | HIDDEN = 1 | STOPPED = 2 | FREE = 3 |
 |:---:|:---:|:---:|:---:|:---:|
@@ -240,7 +253,7 @@ one.
 
 Here are some really __basic benchmarks__ taken on my mediocre personal PC.
 
-This comes from adding (ACTIVE) and removing (FREE) __1000 instances__ of a scene
+This benchmark comes from adding (ACTIVE) and removing (FREE) __1000 instances__ of a scene
 that consists of 4 nodes below `root`. Every test was done __10 times__ and the
 time was averaged. In [__example/main.gd__](example/main.gd) `test_time()` you can see the code used.
 

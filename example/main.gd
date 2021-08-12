@@ -21,44 +21,46 @@ func _ready():
 	# the sync feature
 	# tutorial_sync()
 
-	# the subscene feature / self validity check
-	# tutorial_subscene()
+	# the nested feature
+	# tutorial_nested()
 
 	# the pack feature
 	# tutorial_pack()
 
 	# the benchmark code that was used for the README
-	# tutorial_time()
+	# running all tests at once might take forever, i dont know why
+	tutorial_time()
 
-	test()
-
+	# tutorial_readme()
 	pass
 
-func test():
-	var x = XScene.new($World, true, true)
-	x.add_scene(scene1)
-	# get_node("/root").print_tree_pretty()
-	print(x.scenes)
+
+
 
 func tutorial_basics():
 	# gives instance of XScene with x.root = $"World"
-	# x adds and removes scenes below x.root
-	# it takes a Node
+	# x adds and removes direct children of x.root
+	# it takes a Node which has to be in the scenetree
 	var x = XScene.new($World)
-	# the Node has to be in the scenetree
+
+	# x is only concerned with the direct children of root.
+
+	# x adds itself to the tree below root
+	# this is good because it will be freed automatically when root is freed
+	# however you have to keep in mind, that when iterating over the children of root
+	# x will be among them
+
 
 	# add_scene takes a PackedScene or a Node
 	# it defaults to key=count, method=ACTIVE, deferred=false, recursive_owner=false
 	# count is an int that is automatically incremented and starts at 1
 	x.add_scene(scene1)
-	# print(x.get_scenes()[1])
-	#  -> {scene:[Node2D:1235], state:0}
+	# print(x.scenes)
+	#  -> {1:{scene:[Node2D:1235], state:0}}
 	x.add_scene(scene1, "a", x.HIDDEN)
-	# print(x.get_scenes().a)
+	# print(x.scenes["a"])
 	#  -> {scene:[Node2D:1239], state:1}
 	x.add_scene(scene1, "stopped_s1", x.STOPPED)
-	# print(x.get_scenes()["stopped_s1"])
-	#  -> {scene:[Node2D:1243], state:2}
 	# print(x.scenes)
 	#  ->
 	# {1:{scene:[Node2D:1235], state:0},
@@ -66,25 +68,24 @@ func tutorial_basics():
 	# stopped_s1:{scene:[Node2D:1243], state:2}}
 	# get_node("/root").print_tree_pretty()
 	# ┖╴root
-	# 	┠╴XSceneManager
-	# 	┃  ┖╴@@2 <- x
-	# 	┖╴Main
-	# 	   ┠╴Gui
-	# 	   ┃  ┖╴ColorRect
-	# 	   ┠╴World
-	# 	   ┃  ┠╴Node2D <- was already in the tree via editor
-	# 	   ┃  ┃  ┖╴Node2D
-	# 	   ┃  ┃     ┖╴Node2D
-	# 	   ┃  ┃        ┖╴icon
-	# 	   ┃  ┠╴@Node2D@3 <- 1
-	# 	   ┃  ┃  ┖╴Node2D
-	# 	   ┃  ┃     ┖╴Node2D
-	# 	   ┃  ┃        ┖╴icon
-	# 	   ┃  ┖╴@Node2D@4 <- "a"
-	# 	   ┃     ┖╴Node2D
-	# 	   ┃        ┖╴Node2D
-	# 	   ┃           ┖╴icon
-	# 	   ┖╴Test
+	#    ┖╴Main
+	#       ┠╴Gui
+	#       ┃  ┖╴ColorRect
+	#       ┠╴World
+	#       ┃  ┠╴Node2D
+	#       ┃  ┃  ┖╴Node2D
+	#       ┃  ┃     ┖╴Node2D
+	#       ┃  ┃        ┖╴icon
+	#       ┃  ┠╴@@2 <- x
+	#       ┃  ┠╴@Node2D@3 <- 1
+	#       ┃  ┃  ┖╴Node2D
+	#       ┃  ┃     ┖╴Node2D
+	#       ┃  ┃        ┖╴icon
+	#       ┃  ┖╴@Node2D@4 <- "a"
+	#       ┃     ┖╴Node2D
+	#       ┃        ┖╴Node2D
+	#       ┃           ┖╴icon
+	#       ┖╴Test
 	# "stopped_s1" is not in the tree
 	x.remove_scene(1, x.STOPPED)
 	# get_node("/root").print_tree_pretty()
@@ -99,7 +100,7 @@ func tutorial_basics():
 	# ┃           ┖╴icon
 	# ┖╴Test
 	# 1 is no longer in the tree
-	# print(x.get_scenes()[1])
+	# print(x.scenes[1])
 	#  -> {scene:[Node2D:1235], state:2}
 	# print(x.stopped)
 	# -> [1, stopped_s1]
@@ -127,7 +128,7 @@ func tutorial_basics():
 	# ┃           ┖╴icon
 	# ┖╴Test
 
-	# frees active "stopped_s1", and makes "a" active. before, it was hidden
+	# frees active "stopped_s1", and makes "a" active. before that, it was hidden
 	# it uses show_scene and remove_scene under the hood
 	x.x_scene("a", "stopped_s1", x.FREE)
 	# print(x.scenes)
@@ -143,7 +144,7 @@ func tutorial_basics():
 	# hides 2 externally
 	x.scenes[2].scene.hide()
 
-	# this is a quicker syntax to access ("x"ess) the scene directly
+	# this is a quicker and safer syntax to access ("x"ess) the scene directly
 	x.x(2).hide()
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1235], state:0}, 2:{scene:[Node2D:1247], state:1}}
@@ -158,28 +159,58 @@ func tutorial_basics():
 	# print(x.scenes)
 	# -> {2:{scene:[Node2D:1247], state:2}}
 
-	# all these external changes to tracked scenes will be (lazily) synced when
+	# all these external changes to indexed scenes will be (lazily) synced when
 	# accessing the scenes in any way
 
 	# this is a faster syntax to get all node references in an array
-	print(x.xs())
+	# print(x.xs())
 	# -> [[Node2D:1246]]
 
-	# same but only for stopped scenes, works the same for ACTIVE and HIDDEN
-	print(x.xs(x.STOPPED))
+	# same but only for stopped scenes, also works for ACTIVE and HIDDEN
+	# print(x.xs(x.STOPPED))
 	# -> [[Node2D:1246]]
 
 	# frees all scenes
 	for s in x.scenes:
 		x.remove_scene(s)
 
+func tutorial_access():
+	var x = XScene.new($World)
+
+	x.add_scene(scene1)
+
+	# this is the proper way to access single nodes in x.scenes,
+	# it returns null if the index doesnt exist
+	x.x(1)
+	# this is the proper way to access multiple nodes in x.scenes,
+	# it returns an empty array if no keys of the state still exist
+	x.xs()
+	x.xs(x.ACTIVE) # etc
+
+	# this is the proper way to access keys of a specific state, these are all arrays
+	x.active
+	x.hidden
+	x.stopped
+	# or all of them
+	x.scenes.keys()
+
+	# should normally not be necessary
+	x.scenes
+
+	# should be avoided, because the node at index may have been freed, and if so,
+	# the dictionary entry is erased. this means you can get an access error from this
+	x.scenes[1]
+	# same goes for the arrays
+	x.active[0]
+
+	# there is no save way to access the state of a specific key yet, because i
+	# didnt deem it necessary. if you disagree, open an issue
 
 func tutorial_bulk():
-	var x = XSceneManager.get_x_scene($"World")
+	var x = XScene.new($World)
 
 	# there are also convenience functions to add/show/remove multiple scenes at once,
 	# this is especially useful when using x.active/x.hidden/x.stopped
-	# there is no real performance gain/penalty when using these
 
 	# adds 3 scenes indexed with count
 	x.add_scenes([scene1, scene2, scene3])
@@ -202,15 +233,16 @@ func tutorial_bulk():
 	# -> {a:{scene:[Node2D:1257], state:0}, b:{scene:[Node2D:1261], state:0}, c:{scene:[Node2D:1263], state:0}}
 
 
-
 func tutorial_defaults():
 	# the defaults of add/show/remove can be changed
-	var x = XSceneManager.get_x_scene($"World")
+	var x = XScene.new($World)
 
 	# deferred is used in add/show/remove
 	# recursive_owner is only used in add
 	# changing count_start will only have an effect, when count wasn't incremented yet
 	# for if you prefer 0-indexing
+
+	# these are the actual defaults, you can change them all at once
 	x.defaults = {
 		deferred = false,
 		recursive_owner = false,
@@ -218,9 +250,10 @@ func tutorial_defaults():
 		method_remove = x.FREE,
 		count_start = 1
 	}
-	# these are the actual defaults, you can change them all at once
 	# or individually like this
 	x.defaults.deferred = true
+	# you can also pass them when initializing
+	var x1 = XScene.new($World, false, x.defaults)
 	# this will be called deferred now because we changed the default to true
 	x.add_scene(scene1)
 	# could also be done like this without changing the default
@@ -233,10 +266,10 @@ func tutorial_defaults():
 
 
 func tutorial_deferred():
-	var x = XSceneManager.get_x_scene($"World")
+	var x = XScene.new($World)
 	# when deferred is true, every tree change will be call_deferred() or queue_free()
 	# this does not include hide() and show(), these are always done immediately
-	# make an issue on github if you want this changed or do it yourself
+	# make an issue on github if you want this changed
 	x.defaults.deferred = true
 
 	x.add_scene(scene1)
@@ -311,9 +344,9 @@ func tutorial_deferred():
 
 
 func tutorial_sync():
-	# the sync feature can be slow, see ## Caveats in the README.md
-	# the sync tracks all external additions to the tree under x.root
-	var x = XSceneManager.get_x_scene($"World", true)
+	# WARNING the sync feature can be slow, see ## Caveats in the README.md
+	# the sync indexes all external additions to the tree under x.root
+	var x = XScene.new($World, true)
 
 	# this scene was already added in the editor
 	# because sync is on for this XScene Instance, it is added to scenes
@@ -333,7 +366,7 @@ func tutorial_sync():
 
 	# externally hide 2 and stop 3
 	# for operations that can be done with remove_scene(), the sync feature
-	# is not necessary. The sync is always done for tracked scenes when accessing them (lazily)
+	# is not necessary. The sync is always done for indexed scenes when accessing them (lazily)
 	two.hide()
 	w.remove_child(three)
 	# print(x.scenes)
@@ -341,8 +374,6 @@ func tutorial_sync():
 
 	# adds a child under Main, which isn't the x.root, so it's not indexed
 	add_child(scene1.instance())
-	# print(x.scenes)
-	# -> {1:{scene:[Node2D:1227], state:0}, 2:{scene:[Node2D:1235], state:0}, 3:{scene:[Node2D:1237], state:0}}
 	# get_node("/root").print_tree_pretty()
 	#┖╴root
 	# 	┠╴XSceneManager
@@ -362,42 +393,44 @@ func tutorial_sync():
 	# 		  ┖╴Node2D
 	# 			 ┖╴Node2D
 	# 				┖╴icon
-	# print(x._get_last_active())
-	# -> 1
 	x.add_scene(scene1, "internal")
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1226], state:0}, 2:{scene:[Node2D:1234], state:1}, 3:{scene:[Node2D:1236], state:2}, internal:{scene:[Node2D:1242], state:0}}
-	# print(x._get_last_active())
+	# print(x.active[-1])
 	# -> internal
 
 
-func tutorial_subscene():
-	var x = XSceneManager.get_x_scene($"World")
+func tutorial_nested():
+	var x = XScene.new($World)
 
 	x.add_scene(scene1, "a")
 
 	# x1.root is "a" which is below x.root
-	var x1 = XSceneManager.get_x_scene(x.scenes["a"].scene)
+	var x1 = XScene.new(x.x("a"))
 
 	x1.add_scene(scene1, "aa")
-	# this frees the x1.root
+	# this frees the x1.root and therefore x1 with it
 	x.remove_scene("a")
 
-	# this doesn't throw an error, it calls queue_free() for x1
-	x1.add_scene(scene1, "bb")
-	# uncomment this to get the error, after it x1 will be freed
-	# yield(get_tree(), "idle_frame")
-	# comment this unsafe call after uncommenting yield
-	x1.add_scene(scene1, "cc")
-	# if you check you are still safe
+	# this throws an error because x1 is null
+	# x1.add_scene(scene1, "bb")
+
+	# if you check, you are still safe
+	# if x1 == null:
+	# or
 	if is_instance_valid(x1):
 		x1.add_scene(scene1, "dd")
 	else:
 		print("x1 was freed but its fine")
 
+	# GOOD PRACTICE
+	# you should make this check at the beginning of every function and after every yield
+	# when planning to use the XScene instance and
+	# if you want to avoid getting errors for null access
+
 
 func tutorial_pack():
-	var x = XSceneManager.get_x_scene($"World")
+	var x = XScene.new($World)
 
 	var n1 = Node.new()
 	var n2 = Node.new()
@@ -409,7 +442,7 @@ func tutorial_pack():
 	# this is only necessary for scenes constructed in scripts
 	# scenes made in the editor will be packed recursively without it
 	x.add_scene(n1, "b", 0, false, true)
-	# this packs x.root
+	# this packs x.root with PackedScene.pack() and saves it with ResourceSaver.save()
 	x.pack_root("res://example/test.scn")
 
 	$"/root/Main/Test".add_child(load("res://example/test.scn").instance())
@@ -427,7 +460,7 @@ func tutorial_time():
 
 	# -------------
 
-	x = XSceneManager.get_x_scene(p, true)
+	x = XScene.new(p, true)
 
 	time_add = 0.0
 	time_remove = 0.0
@@ -449,26 +482,38 @@ func tutorial_time():
 	print("sync add in ", time_add)
 	print("sync remove in ", time_remove)
 
-	time_add = 0.0
-	time_remove = 0.0
-
-	for j in range(m):
-		time_begin = OS.get_ticks_usec()
-		for i in range(n):
-			p.add_child(scene1.instance())
-		time_add += (OS.get_ticks_usec() - time_begin) / 1000000.0
-
-		time_begin = OS.get_ticks_usec()
-		for i in p.get_children():
-			i.free()
-		time_remove += (OS.get_ticks_usec() - time_begin) / 1000000.0
-	time_add /= m
-	time_remove /= m
-
-	print("sync add ex ", time_add)
-	print("sync remove ex ", time_remove)
-
 	x.free()
+
+	# time_add = 0.0
+	# time_remove = 0.0
+	# var time_add_pre = 0.0
+	# 
+	# for j in range(m):
+	# 	x = XScene.new(p, true)
+	# 
+	# 	time_begin = OS.get_ticks_usec()
+	# 	for i in range(n):
+	# 		p.add_child(scene1.instance())
+	# 	time_add += (OS.get_ticks_usec() - time_begin) / 1000000.0
+	# 
+	# 	x.free()
+	# 
+	# 	time_begin = OS.get_ticks_usec()
+	# 	x = XScene.new(p, true)
+	# 	time_add_pre += (OS.get_ticks_usec() - time_begin) / 1000000.0
+	# 
+	# 	time_begin = OS.get_ticks_usec()
+	# 	for i in p.get_children():
+	# 		i.free()
+	# 	time_remove += (OS.get_ticks_usec() - time_begin) / 1000000.0
+	# 
+	# time_add /= m
+	# time_remove /= m
+	# time_add_pre /= m
+	# 
+	# print("sync add ex ", time_add)
+	# print("sync add ex pre ", time_add_pre)
+	# print("sync remove ex ", time_remove)
 
 	# -------------
 
@@ -493,7 +538,7 @@ func tutorial_time():
 
 	# -------------
 
-	x = XSceneManager.get_x_scene(p)
+	x = XScene.new(p)
 
 	time_add = 0.0
 	time_remove = 0.0
@@ -519,7 +564,7 @@ func tutorial_time():
 
 	# -------------
 
-	x = XSceneManager.get_x_scene(p)
+	x = XScene.new(p)
 
 	time_add = 0.0
 	time_remove = 0.0
@@ -542,5 +587,129 @@ func tutorial_time():
 	time_add /= m
 	time_remove /= m
 
-	print("nosync add bulk", time_add)
-	print("nosync remove bulk", time_remove)
+	print("nosync add bulk ", time_add)
+	print("nosync remove bulk ", time_remove)
+
+
+func tutorial_readme():
+	var scene1 = preload("scene1.tscn")
+	# x adds and removes scenes below $World
+	# adds itself to the tree below $World
+	var x = XScene.new($World)
+
+	# this is a reference to $World
+	var r = x.root
+
+	# add_scene takes a PackedScene or a Node
+	# without a key specified it indexes automatically with integers starting at 1
+	# (this can be changed to 0)
+	# default method is ACTIVE, using add_child()
+	x.add_scene(scene1)
+	# uses add_child() and .hide()
+	x.add_scene(scene1, "a", x.HIDDEN)
+	# just instances and indexes the scene
+	x.add_scene(scene1, "stopped_s1", x.STOPPED)
+
+	get_node("/root").print_tree_pretty()
+	# ┖╴root
+	#    ┖╴Main
+	#       ┠╴Gui
+	#       ┃  ┖╴ColorRect
+	#       ┠╴World
+	#       ┃  ┠╴Node2D <- was added by the editor and isn't indexed by default
+	#       ┃  ┃  ┖╴Node2D
+	#       ┃  ┃     ┖╴Node2D
+	#       ┃  ┃        ┖╴icon
+	#       ┃  ┠╴@@2 <- x instance
+	#       ┃  ┠╴@Node2D@3 <- 1
+	#       ┃  ┃  ┖╴Node2D
+	#       ┃  ┃     ┖╴Node2D
+	#       ┃  ┃        ┖╴icon
+	#       ┃  ┖╴@Node2D@4 <- "a" in the tree but hidden
+	#       ┃     ┖╴Node2D
+	#       ┃        ┖╴Node2D
+	#       ┃           ┖╴icon
+	#       ┖╴Test
+	# "stopped_s1" isnt in the tree
+
+	print(x.scenes)
+	# {1:{scene:[Node2D:1227], state:0}, -> ACTIVE
+	# a:{scene:[Node2D:1231], state:1}, -> HIDDEN
+	# stopped_s1:{scene:[Node2D:1235], state:2}} -> STOPPED
+
+	# uses remove_child()
+	x.remove_scene(1, x.STOPPED)
+	get_node("/root").print_tree_pretty()
+	# ┠╴World
+	# ┃  ┠╴Node2D
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┠╴@@2
+	# ┃  ┖╴@Node2D@4 <- "a" still in tree
+	# ┃     ┖╴Node2D
+	# ┃        ┖╴Node2D
+	# ┃           ┖╴icon
+	# ┖╴Test
+	# 1 also is no longer in the tree
+
+	# make all STOPPED scenes ACTIVE
+	# mind the plural
+	x.show_scenes(x.stopped)
+	get_node("/root").print_tree_pretty()
+	# ┠╴World
+	# ┃  ┠╴Node2D
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┠╴@@2
+	# ┃  ┠╴@Node2D@4 <- "a"
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┠╴@Node2D@3 <- 1
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┖╴@Node2D@5 <- "stopped_s1"
+	# ┃     ┖╴Node2D
+	# ┃        ┖╴Node2D
+	# ┃           ┖╴icon
+	# ┖╴Test
+
+	# exchange scene, makes "a" ACTIVE, and uses .free() on "stopped_s1"
+	# it defaults to FREE, the argument isn't necessary here
+	x.x_scene("a", "stopped_s1", x.FREE)
+	get_node("/root").print_tree_pretty()
+	# ┠╴World
+	# ┃  ┠╴Node2D
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┠╴@@2
+	# ┃  ┠╴@Node2D@4 <- "a" no longer hidden
+	# ┃  ┃  ┖╴Node2D
+	# ┃  ┃     ┖╴Node2D
+	# ┃  ┃        ┖╴icon
+	# ┃  ┖╴@Node2D@3 <- 1
+	# ┃     ┖╴Node2D
+	# ┃        ┖╴Node2D
+	# ┃           ┖╴icon
+	# ┖╴Test
+	# "stopped_s1" was freed and is no longer indexed
+
+	# to access ("x"ess) the scene/node of "a" directly
+	x.x("a").hide()
+	# to access all hidden scenes directly, returns an array of nodes
+	print(x.xs(x.HIDDEN))
+	# [[Node2D:1231]] <- this is the node/scene of "a" in an array
+	# note that a was hidden externally and is still indexed correctly,
+	# this is done lazily, only when accessing that node
+
+	# put x.root and everything indexed into a file using PackedScene.pack() and ResourceSaver.save()
+	x.pack_root("res://example/test.scn")
+	# this can be loaded later, it includes x.root but not x
+
+	# .free() everything indexed by x, remove_scene/s defaults to FREE
+	# mind the plural
+	x.remove_scenes(x.scenes.keys())
