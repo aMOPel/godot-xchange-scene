@@ -59,10 +59,10 @@ var count: int = defaults.count_start setget _dont_set
 
 
 # init for XScene
-# `node`: Node ; determines `root`
-# `synchronize`: bool ; default: false ; wether to synchronize `scenes` with 
+# `node`: Node | determines `root`
+# `synchronize`: bool | default: false | wether to synchronize `scenes` with
 # external additions to the tree
-# `parameter_defaults`: Dictionary ; default: `defaults`
+# `parameter_defaults`: Dictionary | default: `defaults`
 func _init(node: Node, synchronize := false, parameter_defaults := defaults) -> void:
 	assert(
 		node.is_inside_tree(),
@@ -115,18 +115,18 @@ func get_scenes() -> Dictionary:
 
 
 # "x"ess the scene of `key`
-# returns null if the scene of `key` was already freed or is queued for deletion
+# returns null, if the scene of `key` was already freed or is queued for deletion
 func x(key) -> Node:
 	if _check_scene(key):
 		return scenes[key].scene
 	else:
-		print_debug("XScene.x: key invalid")
+		print_debug("XScene.x: returning null, key invalid " + key as String)
 		return null
 
 
 # do multiple "x"ess"s", get Array of Nodes based on `method`
-# if null return all scenes(nodes) from `scenes`
-# if method specified return only the scenes(nodes) in the respective state
+# if null, return all scenes(nodes) from `scenes`
+# if method specified, return only the scenes(nodes) in the respective state
 # `method`: null / `ACTIVE` / `HIDDEN` / `STOPPED` | default: null
 func xs(method = null) -> Array:
 	_check_scenes(method)
@@ -138,6 +138,14 @@ func xs(method = null) -> Array:
 		for k in scenes.keys():
 			if scenes[k].state == method:
 				a.push_back(scenes[k].scene)
+	if a.empty():
+		print_debug(
+			(
+				"XScene.xs: not returning any nodes with method=" + "null"
+				if method == null
+				else method as String
+			)
+		)
 	return a
 
 
@@ -145,13 +153,12 @@ func xs(method = null) -> Array:
 # `ACTIVE` uses `add_child()`
 # `HIDDEN` uses `add_child()` and `.hide()`
 # `STOPPED` only adds to `scenes` not to the tree
-# `scene`: Node / PackagedScene 
+# `scene`: Node / PackagedScene
 # `key`: `count` / String | default: `count` | key in `scenes`
 # `method`: `ACTIVE` / `HIDDEN` / `STOPPED` | default: `ACTIVE`
-# `deferred`: bool | default: false | whether to use call_deferred() for tree 
+# `deferred`: bool | default: false | whether to use call_deferred() for tree
 # changes
-# `recursive_owner`: bool | default: false | wether to recursively for all 
-
+# `recursive_owner`: bool | default: false | wether to recursively for all
 # children of `scene` set the owner to `root`, this is useful for `pack_root()`
 func add_scene(
 	new_scene,
@@ -162,15 +169,15 @@ func add_scene(
 ) -> void:
 	assert(
 		(key is int and key == count) or key is String,
-		"XScene.add_scene: key must be count or String " + key.to_string()
+		"XScene.add_scene: key must be count or String " + key as String
 	)
 	assert(
 		! (key in scenes),
-		"XScene.add_scene: key already exists " + key.to_string()
+		"XScene.add_scene: key already exists " + key as String
 	)
 	assert(
 		ACTIVE <= method and method <= STOPPED,
-		"XScene.add_scene: invalid method value " + method.to_string()
+		"XScene.add_scene: invalid method value " + method as String
 	)
 	var s: Node
 	if new_scene is PackedScene:
@@ -206,15 +213,15 @@ func add_scene(
 			s.owner = root
 
 		if method == HIDDEN:
-			# TODO maybe make this not assert
-			assert(
-				s is CanvasItem,
-				(
-					"XScene.add_scene: new_scene must inherit from CanvasItem to be hidden "
-					+ new_scene.to_string()
+			if not s is CanvasItem:
+				print_debug(
+					(
+						"XScene.add_scene: new_scene must inherit from CanvasItem to be hidden "
+						+ s.to_string()
+					)
 				)
-			)
-			s.hide()
+			else:
+				s.hide()
 
 	scenes[key] = {scene = s, state = method}
 
@@ -224,24 +231,35 @@ func add_scene(
 # if key is `HIDDEN` it uses `.show()`
 # if key is `STOPPED` it uses `add_child()` and `.show()`
 # `key` : int / String | default: `count` | key in `scenes`
-# `deferred` : bool | default: false | whether to use `call_deferred()` for tree 
+# `deferred` : bool | default: false | whether to use `call_deferred()` for tree
 # changes
 func show_scene(key = count, deferred := defaults.deferred) -> void:
-	assert(
-		_check_scene(key), "XScene.show_scene: key invalid " + key.to_string()
-	)
+	if not _check_scene(key):
+		push_error("XScene.show_scene: key invalid " + key as String)
+		return
+
 	var s = scenes[key]
-	assert(
-		! (s.state == ACTIVE),
-		"XScene.show_scene: scene already active " + s.to_string()
-	)
 
 	match s.state:
-		HIDDEN:
-			assert(
-				s.scene is CanvasItem,
-				"XScene.show_scene: BUG scene must inherit from CanvasItem to be shown"
+		ACTIVE:
+			print_debug(
+				(
+					"XScene.show_scene: scene already active, aborting "
+					+ key as String
+					+ " "
+					+ s.to_string()
+				)
 			)
+			return
+		HIDDEN:
+			if not s.scene is CanvasItem:
+				print_debug(
+					(
+						"XScene.show_scene: scene must inherit from CanvasItem to be hidden "
+						+ s.to_string()
+					)
+				)
+				return
 			s.scene.show()
 		STOPPED:
 			_adding_scene = true
@@ -263,31 +281,32 @@ func show_scene(key = count, deferred := defaults.deferred) -> void:
 # `FREE` uses `.free()`
 # `key`: int / String | default: `count` | key in `scenes`
 # `method`: `HIDDEN` / `STOPPED` / `FREE` | default: `FREE`
-# `deferred`: bool | default: false | whether to use `call_deferred()` or 
+# `deferred`: bool | default: false | whether to use `call_deferred()` or
 # `queue_free()` for tree changes
 func remove_scene(
 	key = count, method := defaults.method_remove, deferred := defaults.deferred
 ) -> void:
 	assert(
 		HIDDEN <= method and method <= FREE,
-		"XScene.remove_scene: invalid method value " + method.to_string()
+		"XScene.remove_scene: invalid method value " + method as String
 	)
+	if not _check_scene(key):
+		push_error("XScene.remove_scene: key invalid " + key as String)
+		return
 
-	assert(
-		_check_scene(key), "XScene.remove_scene: key invalid " + key.to_string()
-	)
 	var s = scenes[key]
 
 	match method:
 		HIDDEN:
-			# TODO maybe make this not assert
-			assert(
-				s.scene is CanvasItem,
-				(
-					"XScene.remove_scene: scene must inherit from CanvasItem to be hidden "
-					+ s.to_string()
+			if not s.scene is CanvasItem:
+				print_debug(
+					(
+						"XScene.remove_scene: scene must inherit from CanvasItem to be hidden "
+						+ s.to_string()
+					)
 				)
-			)
+				return
+
 			if s.state == ACTIVE:
 				s.scene.hide()
 				s.state = HIDDEN
@@ -316,9 +335,9 @@ func remove_scene(
 
 # use `show_scene(key_to, deferred)`
 # and `remove_scene(key_from, method_from, deferred)`
-# `key_from`: int / String | default: null | use `remove_scene()` with this key, 
-# if null, the last active scene will be used, mind that the order of `active` 
-# only depends on the order of `scenes`  
+# `key_from`: int / String | default: null | use `remove_scene()` with this key,
+# if null, the last active scene will be used, mind that the order of `active`
+# only depends on the order of `scenes`
 # hiding/stopping and then showing scenes won't change the order
 # see `show_scene()` and `remove_scene()` for other parameters
 func x_scene(
@@ -327,29 +346,19 @@ func x_scene(
 	method_from := defaults.method_remove,
 	deferred := defaults.deferred
 ) -> void:
-	assert(not active.empty(), "XScene.x_scene: no active scenes")
 	if key_from == null:
 		key_from = self.active[-1]
-	else:
-		assert(
-			scenes[key_from].state == ACTIVE,
-			"XScene.x_scene: key_from not active " + key_from.to_string()
-		)
-	assert(
-		! (scenes[key_to].state == ACTIVE),
-		"XScene.x_scene: key_to already active" + key_to.to_string()
-	)
 
-	remove_scene(key_from, method_from, deferred)
 	show_scene(key_to, deferred)
+	remove_scene(key_from, method_from, deferred)
 
 
 # use `add_scene(scene_to, key_to, method_to, deferred, recursive_owner)`
 # and `remove_scene(key_from, method_from, deferred)`
 # `key_to`: `count` / String | default: `count` | use `add_scene()` with this key
-# `key_from`: int / String | default: null | use `remove_scene()` with this key, 
-# if null, the last active scene will be used, mind that the order of `active` 
-# only depends on the order of `scenes`  
+# `key_from`: int / String | default: null | use `remove_scene()` with this key,
+# if null, the last active scene will be used, mind that the order of `active`
+# only depends on the order of `scenes`
 # hiding/stopping and then showing scenes won't change the order
 # see `add_scene()` and `remove_scene()` for other parameters
 func x_add_scene(
@@ -361,15 +370,8 @@ func x_add_scene(
 	deferred := defaults.deferred,
 	recursive_owner := defaults.recursive_owner
 ) -> void:
-	assert(not active.empty(), "XScene.x_add_scene: no active scenes")
 	if key_from == null:
 		key_from = self.active[-1]
-	else:
-		assert(
-			scenes[key_from].state == ACTIVE,
-			"XScene.x_add_scene: key_from not active " + key_from.to_string()
-		)
-
 	add_scene(scene_to, key_to, method_to, deferred, recursive_owner)
 	remove_scene(key_from, method_from, deferred)
 
@@ -390,7 +392,7 @@ func add_scenes(
 			keys == count,
 			(
 				"XScene.add_scenes: key must be array if it isn't count "
-				+ keys.to_string()
+				+ keys as String
 			)
 		)
 		for s in new_scenes:
@@ -429,8 +431,8 @@ func remove_scenes(
 
 # pack `root` into `filepath` using `PackedScene.pack()`
 # this works together with the `recursive_owner` parameter of `add_scene()`
-# mind that the recursive_owner parameter is only necessary for scenes 
-# constructed from script, a scene constructed in the editor already works 
+# mind that the recursive_owner parameter is only necessary for scenes
+# constructed from script, a scene constructed in the editor already works
 func pack_root(filepath) -> void:
 	var scene = PackedScene.new()
 	if scene.pack(root) == OK:
@@ -441,10 +443,10 @@ func pack_root(filepath) -> void:
 
 
 # check multiple scenes with `_check_scene()`
-# this gets called by the getters for `scenes`, `active`, `hidden`, `stopped` 
+# this gets called by the getters for `scenes`, `active`, `hidden`, `stopped`
 # and `xs()`
 # if null updates `scenes`, else update only the respective array
-# `method` null / `ACTIVE` / `HIDDEN` / `STOPPED` ; default: null ;
+# `method` null / `ACTIVE` / `HIDDEN` / `STOPPED` | default: null |
 func _check_scenes(method = null) -> void:
 	var dead_keys = []
 	if method == null:
@@ -454,7 +456,7 @@ func _check_scenes(method = null) -> void:
 	else:
 		assert(
 			ACTIVE <= method and method <= STOPPED,
-			"XScene._check_scenes: invalid method value " + method.to_string()
+			"XScene._check_scenes: invalid method value " + method as String
 		)
 		match method:
 			ACTIVE:
