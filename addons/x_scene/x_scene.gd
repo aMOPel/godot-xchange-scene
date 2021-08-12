@@ -160,13 +160,7 @@ func xs(method = null) -> Array:
 # changes
 # `recursive_owner`: bool | default: false | wether to recursively for all
 # children of `scene` set the owner to `root`, this is useful for `pack_root()`
-func add_scene(
-	new_scene,
-	key = count,
-	method := defaults.method_add,
-	deferred := defaults.deferred,
-	recursive_owner := defaults.recursive_owner
-) -> void:
+func add_scene( new_scene, key = count, method := defaults.method_add, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
 	assert(
 		(key is int and key == count) or key is String,
 		"XScene.add_scene: key must be count or String " + key as String
@@ -283,9 +277,7 @@ func show_scene(key = count, deferred := defaults.deferred) -> void:
 # `method`: `HIDDEN` / `STOPPED` / `FREE` | default: `FREE`
 # `deferred`: bool | default: false | whether to use `call_deferred()` or
 # `queue_free()` for tree changes
-func remove_scene(
-	key = count, method := defaults.method_remove, deferred := defaults.deferred
-) -> void:
+func remove_scene( key = count, method := defaults.method_remove, deferred := defaults.deferred) -> void:
 	assert(
 		HIDDEN <= method and method <= FREE,
 		"XScene.remove_scene: invalid method value " + method as String
@@ -340,12 +332,7 @@ func remove_scene(
 # only depends on the order of `scenes`
 # hiding/stopping and then showing scenes won't change the order
 # see `show_scene()` and `remove_scene()` for other parameters
-func x_scene(
-	key_to,
-	key_from = null,
-	method_from := defaults.method_remove,
-	deferred := defaults.deferred
-) -> void:
+func x_scene( key_to, key_from = null, method_from := defaults.method_remove, deferred := defaults.deferred) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
 
@@ -361,15 +348,7 @@ func x_scene(
 # only depends on the order of `scenes`
 # hiding/stopping and then showing scenes won't change the order
 # see `add_scene()` and `remove_scene()` for other parameters
-func x_add_scene(
-	scene_to,
-	key_to = count,
-	key_from = null,
-	method_to := defaults.method_add,
-	method_from := defaults.method_remove,
-	deferred := defaults.deferred,
-	recursive_owner := defaults.recursive_owner
-) -> void:
+func x_add_scene( scene_to, key_to = count, key_from = null, method_to := defaults.method_add, method_from := defaults.method_remove, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
 	add_scene(scene_to, key_to, method_to, deferred, recursive_owner)
@@ -380,13 +359,7 @@ func x_add_scene(
 # `scenes` : Array<Node> / Array<PackedScene>
 # `keys` : count / Array<String> | default: count | if it isn't count the Array has to be the same size as `scenes`
 # see `add_scene()` for other parameters
-func add_scenes(
-	new_scenes: Array,
-	keys = count,
-	method := defaults.method_add,
-	deferred := defaults.deferred,
-	recursive_owner := defaults.recursive_owner
-) -> void:
+func add_scenes( new_scenes: Array, keys = count, method := defaults.method_add, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
 	if keys is int:
 		assert(
 			keys == count,
@@ -422,9 +395,7 @@ func show_scenes(keys: Array, deferred := defaults.deferred) -> void:
 # removes multiple scenes with `remove_scene()`
 # `keys` : Array<String and/or int>
 # see `remove_scene()` for other parameters
-func remove_scenes(
-	keys: Array, method := defaults.method_remove, deferred := defaults.deferred
-) -> void:
+func remove_scenes( keys: Array, method := defaults.method_remove, deferred := defaults.deferred) -> void:
 	for k in keys:
 		remove_scene(k, method, deferred)
 
