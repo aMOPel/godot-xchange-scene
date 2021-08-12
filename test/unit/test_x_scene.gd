@@ -578,7 +578,88 @@ class TestBulk:
 		assert_eq(x.hidden, ["a", "b", "c"])
 		assert_false(x.x(1).is_inside_tree())
 		x.show_scenes(x.hidden)
+		# happens immediately
 		assert_true(x.hidden.empty())
+		assert_eq(x.stopped, [1, 3])
 		x.show_scenes(x.stopped)
-		# TODO finish this test
-		# TODO write tests for x_scene and x_add_scene
+		assert_eq(x.stopped, [1, 3])
+		yield(get_tree(), "idle_frame")
+		assert_true(x.stopped.empty())
+		assert_eq(x.scenes.keys(), [1, 2, 3, "a", "b", "c"])
+		var temp = x.x(1)
+		x.remove_scenes(x.scenes.keys())
+		# is queued for deletion but still valid and scenes is already updated
+		assert_true(temp.is_queued_for_deletion())
+		assert_true(is_instance_valid(temp))
+		assert_true(x.scenes.empty())
+		yield(get_tree(), "idle_frame")
+		assert_false(is_instance_valid(temp))
+		assert_true(x.scenes.empty())
+
+
+class TestExchange:
+	extends "res://addons/gut/test.gd"
+
+	var n: Node
+	var x: Node
+	var s1 = load("res://example/scene1.tscn")
+	var s2 = load("res://example/scene2.tscn")
+	var s3 = load("res://example/scene3.tscn")
+
+	func before_each():
+		n = Node.new()
+		add_child(n)
+
+	func after_each():
+		for s in x.xs():
+			s.free()
+		for c in get_children():
+			c.free()
+
+	func test_last_active():
+		x = XScene.new(n)
+		var a = [s1, s2, s3]
+		x.add_scenes(a, ["a", "b", "c"])
+		assert_eq(x.active[-1], "c")
+		x.add_scenes(a)
+		assert_eq(x.active[-1], 3)
+		x.add_scenes(a, ["f", "e", "d"])
+		assert_eq(x.active[-1], "d")
+		x.remove_scenes(["a", "b", "c", "d", "e"], x.HIDDEN)
+		assert_eq(x.active[-1], "f")
+		x.remove_scene(2, x.STOPPED)
+		assert_eq(x.active[-1], "f")
+		# still "f" because 2 is still in scenes, and thats where 
+		# the order in active comes from
+		x.show_scene(2)
+		assert_eq(x.active[-1], "f")
+		x.show_scenes(["a", "d"])
+		# "a" still at index 0
+		# "d" still at last index
+		assert_eq(x.active[0], "a")
+		assert_eq(x.active[-1], "d")
+		x.remove_scene("c")
+		x.add_scene(s1, "c")
+		# only by removing from scenes and readding you change the order
+		assert_eq(x.active[-1], "c")
+
+	func test_x_scene():
+		x = XScene.new(n)
+		var a = [s1, s2, s3]
+		x.add_scenes(a)
+		x.add_scenes(a, ["a", "b", "c"], x.HIDDEN)
+		x.x_scene("a", 1)
+		assert_eq(x.active, [2, 3, "a"])
+		x.x_scene("b")
+		assert_eq(x.active, [2, 3, "b"])
+		x.x_scene("c", 3)
+		assert_eq(x.active, [2, "b", "c"])
+
+	func test_x_add_scene():
+		x = XScene.new(n)
+		var a = [s1, s2, s3]
+		x.add_scenes(a)
+		x.x_add_scene(s1, "a", 1)
+		assert_eq(x.active, [2, 3, "a"])
+		x.x_add_scene(s1, "b")
+		assert_eq(x.active, [2, 3, "b"])
