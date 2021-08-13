@@ -184,7 +184,7 @@ _Made with Godot version 3.3.2.stable.official_
 This repo is in a __Godot Plugin format__.
 
 You can:
-- Install it via __AssetLib__ or
+- Install it via [__AssetLib__](https://godotengine.org/asset-library/asset/1018) or
 - Download a __.zip__ of this repo and put it in your project
 
 For more details, read the [godot docs on installing Plugins
