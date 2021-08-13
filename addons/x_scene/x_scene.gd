@@ -129,6 +129,10 @@ func x(key) -> Node:
 # if method specified, return only the scenes(nodes) in the respective state \
 # `method`: null / `ACTIVE` / `HIDDEN` / `STOPPED` | default: null
 func xs(method = null) -> Array:
+	assert(
+		method == null or (ACTIVE <= method and method <= STOPPED),
+		"XScene.xs: invalid method value " + method as String
+	)
 	_check_scenes(method)
 	var a := []
 	if method == null:
@@ -356,7 +360,7 @@ func x_add_scene( scene_to, key_to = count, key_from = null, method_to := defaul
 
 
 # adds multiple scenes with `add_scene()` \
-# `scenes` : Array<Node> / Array<PackedScene> \
+# `scenes` : Array<Node or PackedScene> \
 # `keys` : count / Array<String> | default: count | if it isn't count the Array has to be the same size as `scenes` \
 # see `add_scene()` for other parameters
 func add_scenes( new_scenes: Array, keys = count, method := defaults.method_add, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
@@ -400,7 +404,7 @@ func remove_scenes( keys: Array, method := defaults.method_remove, deferred := d
 		remove_scene(k, method, deferred)
 
 
-# pack `root` into `filepath` using `PackedScene.pack() and `ResourceSaver.save()` \
+# pack `root` into `filepath` using `PackedScene.pack()` and `ResourceSaver.save()` \
 # this works together with the `recursive_owner` parameter of `add_scene()` \
 # mind that the recursive_owner parameter is only necessary for scenes
 # constructed from script, a scene constructed in the editor already works
