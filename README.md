@@ -164,7 +164,7 @@ x.remove_scenes(x.scenes.keys())
   - __Bulk functions__
     + To add/show/remove many nodes at once
 
-#### Why not just use `get_tree().change_scene()`?
+### Why not just use `get_tree().change_scene()`?
 
 See [this part of the godot
 docs](https://docs.godotengine.org/en/stable/tutorials/misc/change_scenes_manually.html#doc-change-scenes-manually)
@@ -192,7 +192,7 @@ For more details, read the [godot docs on installing Plugins
 
 __Don't forget to enable it in your project settings!__
 
-#### Run examples
+### Run examples
 
 To run the examples yourself, you can
 1. Clone this repo 
@@ -206,6 +206,10 @@ To run the examples yourself, you can
 
 In the [__example/main.gd__](example/main.gd) you can see how to use it. 
 There are little __tutorials__ split in functions with __a lot of comments__ to explain everything in detail.
+
+Also in [__docs/XScene.md__](docs/XScene.md) is a full markdown reference built from the docstrings.
+However it is hard to read on Github because it merges the linebreaks. Either read it in an editor on read it 
+["Raw" on Github](https://raw.githubusercontent.com/aMOPel/godot-xchange-scene/main/docs/XScene.md).
 
 ```gdscript
 # example/main.gd
@@ -225,7 +229,7 @@ x = XScene.new($World)
 This will give you an instance of `XScene` (the main class), which acts and sits below
 `World`. 
 
-#### Transistions
+### Transistions
 
 | from\to | ACTIVE = 0 | HIDDEN = 1 | STOPPED = 2 | FREE = 3 |
 |:---:|:---:|:---:|:---:|:---:|
@@ -246,7 +250,7 @@ to `true`.
 __NOTE__: Although this plugin resembles a state machine, it isn't implemented as
 one.
 
-#### Caveats
+### Caveats
 
   - This plugin adds an __overhead__ to adding and removing scenes. When you add or remove in __high quantities__, you should consider using the __built-in commands__, if you don't have to index the scenes so thoroughly.
   - The __sync feature__ adds __more overhead__ and should also only be used for __small quantities__ of scenes. Mind that this feature checks for every addition in the whole tree. So if you were to have a few `XScene` instances with sync enabled, every instances will make checks and add even more overhead

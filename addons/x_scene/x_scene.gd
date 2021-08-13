@@ -37,14 +37,14 @@ var _adding_scene := false setget _dont_set
 # this is interesting for `_check_scene()` and deferred removing
 var _removing_scene := false setget _dont_set
 
-# Dictionary that hold the default values for parameters used in add/show/remove
-# __WARNING__ if you change the values to something not of its original type,
-# things will break
-# `deferred` = false,
-# `recursive_owner` = false,
-# `method_add` = ACTIVE,
-# `method_remove` = FREE,
-# `count_start` = 1
+# Dictionary that hold the default values for parameters used in add/show/remove \
+# __WARNING__ if you change the values to something not of its original type, \
+# things will break \
+# `deferred` = false, \
+# `recursive_owner` = false, \
+# `method_add` = ACTIVE, \
+# `method_remove` = FREE, \
+# `count_start` = 1 \
 var defaults := {
 	deferred = false,
 	recursive_owner = false,

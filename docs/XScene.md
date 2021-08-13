@@ -126,14 +126,14 @@ __WARNING__ this can be slow, read the __Caveats__ Section in the README.md
 var defaults: Dictionary
 ```
 
-Dictionary that hold the default values for parameters used in add/show/remove
-__WARNING__ if you change the values to something not of its original type,
-things will break
-`deferred` = false,
-`recursive_owner` = false,
-`method_add` = ACTIVE,
-`method_remove` = FREE,
-`count_start` = 1
+Dictionary that hold the default values for parameters used in add/show/remove \
+__WARNING__ if you change the values to something not of its original type, \
+things will break \
+`deferred` = false, \
+`recursive_owner` = false, \
+`method_add` = ACTIVE, \
+`method_remove` = FREE, \
+`count_start` = 1 \
 
 ### count
 
