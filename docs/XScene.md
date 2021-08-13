@@ -286,7 +286,7 @@ func add_scenes(new_scenes: Array, keys, method, deferred, recursive_owner) -> v
 ```
 
 adds multiple scenes with `add_scene()` \
-`scenes` : Array<Node> / Array<PackedScene> \
+`scenes` : Array<Node or PackedScene> \
 `keys` : count / Array<String> | default: count | if it isn't count the Array has to be the same size as `scenes` \
 see `add_scene()` for other parameters
 
@@ -316,7 +316,7 @@ see `remove_scene()` for other parameters
 func pack_root(filepath) -> void
 ```
 
-pack `root` into `filepath` using `PackedScene.pack() and `ResourceSaver.save()` \
+pack `root` into `filepath` using `PackedScene.pack()` and `ResourceSaver.save()` \
 this works together with the `recursive_owner` parameter of `add_scene()` \
 mind that the recursive_owner parameter is only necessary for scenes
 constructed from script, a scene constructed in the editor already works
