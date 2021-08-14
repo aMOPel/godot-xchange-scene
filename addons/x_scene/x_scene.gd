@@ -131,7 +131,7 @@ func x(key) -> Node:
 func xs(method = null) -> Array:
 	assert(
 		method == null or (ACTIVE <= method and method <= STOPPED),
-		"XScene.xs: invalid method value " + method as String
+		"XScene.xs: invalid method value " + "null" if method == null else method as String
 	)
 	_check_scenes(method)
 	var a := []
