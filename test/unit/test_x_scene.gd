@@ -629,7 +629,7 @@ class TestExchange:
 		assert_eq(x.active[-1], "f")
 		x.remove_scene(2, x.STOPPED)
 		assert_eq(x.active[-1], "f")
-		# still "f" because 2 is still in scenes, and thats where 
+		# still "f" because 2 is still in scenes, and thats where
 		# the order in active comes from
 		x.show_scene(2)
 		assert_eq(x.active[-1], "f")
@@ -663,3 +663,83 @@ class TestExchange:
 		assert_eq(x.active, [2, 3, "a"])
 		x.x_add_scene(s1, "b")
 		assert_eq(x.active, [2, 3, "b"])
+
+
+class TestDefaults:
+	extends "res://addons/gut/test.gd"
+
+	var n: Node
+	var x: Node
+	var s1 = load("res://example/scene1.tscn")
+
+	func before_each():
+		n = Node.new()
+		add_child(n)
+
+	func after_each():
+		for s in x.xs():
+			s.free()
+		for c in get_children():
+			c.free()
+
+	func test_defaults_init():
+		var d = {
+			count_start = 0,
+			deferred = true,
+			recursive_owner = true,
+		}
+
+		x = XScene.new(n, false, d)
+		assert_eq(
+			{
+				deferred = true,
+				recursive_owner = true,
+				method_add = 0,
+				method_remove = 3,
+				count_start = 0
+			}.hash(),
+			x.defaults.hash()
+		)
+		assert_eq(x.count, 0)
+
+	func test_defaults():
+		x = XScene.new(n)
+		assert_eq(x.defaults.hash(), x._original_defaults.hash())
+		assert_eq(x.count, 1)
+
+		# these have to work
+		x.defaults.count_start = 100
+		x.defaults.count_start = 0
+		assert_eq(x.count, 1)
+		x.defaults.method_add = 0
+		x.defaults.method_add = 1
+		x.defaults.method_add = 2
+		x.defaults.method_remove = 1
+		x.defaults.method_remove = 2
+		x.defaults.method_remove = 3
+		x.defaults.deferred = true
+		x.defaults.deferred = false
+		x.defaults.recursive_owner = true
+		x.defaults.recursive_owner = false
+
+		# reset
+		x.defaults = x._original_defaults
+		assert_eq(x.defaults.hash(), x._original_defaults.hash())
+
+		# partial assignment
+		var d = {
+			count_start = 0,
+			deferred = true,
+			recursive_owner = true,
+		}
+		x.defaults = d
+		assert_eq(
+			{
+				deferred = true,
+				recursive_owner = true,
+				method_add = 0,
+				method_remove = 3,
+				count_start = 0
+			}.hash(),
+			x.defaults.hash()
+		)

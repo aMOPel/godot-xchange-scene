@@ -13,7 +13,7 @@ func _ready():
 	# tutorial_bulk()
 
 	# change the default values for function calls
-	# tutorial_defaults()
+	tutorial_defaults()
 
 	# details on usage of deferred argument
 	# tutorial_deferred()
@@ -29,12 +29,11 @@ func _ready():
 
 	# the benchmark code that was used for the README
 	# running all tests at once might take forever, i dont know why
-	tutorial_time()
+	# tutorial_time()
 
 	# tutorial_readme()
+
 	pass
-
-
 
 
 func tutorial_basics():
@@ -49,7 +48,6 @@ func tutorial_basics():
 	# this is good because it will be freed automatically when root is freed
 	# however you have to keep in mind, that when iterating over the children of root
 	# x will be among them
-
 
 	# add_scene takes a PackedScene or a Node
 	# it defaults to key=count, method=ACTIVE, deferred=false, recursive_owner=false
@@ -174,6 +172,7 @@ func tutorial_basics():
 	for s in x.scenes:
 		x.remove_scene(s)
 
+
 func tutorial_access():
 	var x = XScene.new($World)
 
@@ -185,7 +184,7 @@ func tutorial_access():
 	# this is the proper way to access multiple nodes in x.scenes,
 	# it returns an empty array if no keys of the state still exist
 	x.xs()
-	x.xs(x.ACTIVE) # etc
+	x.xs(x.ACTIVE)  # etc
 
 	# this is the proper way to access keys of a specific state, these are all arrays
 	x.active
@@ -205,6 +204,7 @@ func tutorial_access():
 
 	# there is no save way to access the state of a specific key yet, because i
 	# didnt deem it necessary. if you disagree, open an issue
+
 
 func tutorial_bulk():
 	var x = XScene.new($World)
@@ -239,10 +239,10 @@ func tutorial_defaults():
 
 	# deferred is used in add/show/remove
 	# recursive_owner is only used in add
-	# changing count_start will only have an effect, when count wasn't incremented yet
-	# for if you prefer 0-indexing
+	# changing count_start will only have an effect, if passed when initializing
 
-	# these are the actual defaults, you can change them all at once
+	# these are the actual defaults
+	# you can change them all at once
 	x.defaults = {
 		deferred = false,
 		recursive_owner = false,
@@ -250,10 +250,33 @@ func tutorial_defaults():
 		method_remove = x.FREE,
 		count_start = 1
 	}
-	# or individually like this
+	# you can assign a partial dictionary, this will only override the specified keys
+	# and leave the others in tact
+	var d = {deferred = true, count_start = 0}
+	x.defaults = d
+	print(x.defaults)
+	# -> {count_start:0, deferred:True, method_add:0, method_remove:3, recursive_owner:False}
+	# or you can change them individually like this
 	x.defaults.deferred = true
-	# you can also pass them when initializing
-	var x1 = XScene.new($World, false, x.defaults)
+	# x.defaults["deferred"] = true
+
+	# note that count hasnt changed though
+	print(x.count)
+	# -> 1
+
+
+	# the only way to apply the change to count_start is this:
+	# you can pass the defaults when initializing as a dictionary
+	var x1 = XScene.new($World, false, d)
+	print(x1.count)
+	# -> 0
+
+	# this will reset the defaults
+	x1.defaults = x1._original_defaults
+	print(x.defaults)
+	# {count_start:1, deferred:False, method_add:0, method_remove:3, recursive_owner:False}
+	# but it won't reset count
+
 	# this will be called deferred now because we changed the default to true
 	x.add_scene(scene1)
 	# could also be done like this without changing the default
@@ -263,6 +286,16 @@ func tutorial_defaults():
 	yield(get_tree(), "idle_frame")
 	# print(x.scenes)
 	# -> {1:{scene:[Node2D:1234], state:0}}
+
+	# if you try to do give it wrong keys or wrong values it will throw an error directly
+	# so you can catch typos and semantic mistakes early
+	# these all throw errors
+	# x.defaults.deferre = true # invalid key
+	# x.defaults.deferred = 1 # wrong type
+	# x.defaults.method_add = x.FREE # add doesnt take FREE
+	# x.defaults = {method_remove = 0.0} # wrong type
+	# var x2 = XScene.new($World, false, {method_remove = 0.0})
+
 
 
 func tutorial_deferred():
@@ -487,30 +520,30 @@ func tutorial_time():
 	# time_add = 0.0
 	# time_remove = 0.0
 	# var time_add_pre = 0.0
-	# 
+	#
 	# for j in range(m):
 	# 	x = XScene.new(p, true)
-	# 
+	#
 	# 	time_begin = OS.get_ticks_usec()
 	# 	for i in range(n):
 	# 		p.add_child(scene1.instance())
 	# 	time_add += (OS.get_ticks_usec() - time_begin) / 1000000.0
-	# 
+	#
 	# 	x.free()
-	# 
+	#
 	# 	time_begin = OS.get_ticks_usec()
 	# 	x = XScene.new(p, true)
 	# 	time_add_pre += (OS.get_ticks_usec() - time_begin) / 1000000.0
-	# 
+	#
 	# 	time_begin = OS.get_ticks_usec()
 	# 	for i in p.get_children():
 	# 		i.free()
 	# 	time_remove += (OS.get_ticks_usec() - time_begin) / 1000000.0
-	# 
+	#
 	# time_add /= m
 	# time_remove /= m
 	# time_add_pre /= m
-	# 
+	#
 	# print("sync add ex ", time_add)
 	# print("sync add ex pre ", time_add_pre)
 	# print("sync remove ex ", time_remove)

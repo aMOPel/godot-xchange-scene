@@ -38,14 +38,19 @@ var _adding_scene := false setget _dont_set
 var _removing_scene := false setget _dont_set
 
 # Dictionary that hold the default values for parameters used in add/show/remove \
-# __WARNING__ if you change the values to something not of its original type, \
-# things will break \
+# any invalid key or value assignment will throw an error to prevent misuse and cryptic errors \
+# you can assign partial dictionaries and it will override as expected, leaving the other keys alone \
+# eg `x.defaults = {deferred = true, method_add = 2}` \
+# `x.defaults = x._original_defaults` to reset
 # `deferred` = false, \
 # `recursive_owner` = false, \
 # `method_add` = ACTIVE, \
 # `method_remove` = FREE, \
-# `count_start` = 1 
-var defaults := {
+# `count_start` = 1 | This is only applied when passing it to the _init() of XScene
+var defaults: Dictionary setget set_defaults
+
+# constant original default values, used for comparison in `set_defaults()` and to reset
+const _original_defaults := {
 	deferred = false,
 	recursive_owner = false,
 	method_add = ACTIVE,
@@ -54,16 +59,19 @@ var defaults := {
 }
 
 # automatically incrementing counter used as key when none is provided \
-# starting value can be set in `defaults` and defaults to 1
-var count: int = defaults.count_start setget _dont_set
+# starting value can be set by passing `defaults` when initializing XScene \
+# defaults to 1
+var count: int setget _dont_set
 
 
 # init for XScene \
 # `node`: Node | determines `root` \
 # `synchronize`: bool | default: false | wether to synchronize `scenes` with \
 # external additions to the tree \
-# `parameter_defaults`: Dictionary | default: `defaults`
-func _init(node: Node, synchronize := false, parameter_defaults := defaults) -> void:
+# `parameter_defaults`: Dictionary | default: {} | this is the only way to change `count_start` \
+# you can also pass partial dictionaries
+# eg `x = XScene.new($Node, false, {deferred = true, count_start = 0})`
+func _init(node: Node, synchronize := false, parameter_defaults := {}) -> void:
 	assert(
 		node.is_inside_tree(),
 		(
@@ -72,7 +80,9 @@ func _init(node: Node, synchronize := false, parameter_defaults := defaults) -> 
 		)
 	)
 	flag_sync = synchronize
-	defaults = parameter_defaults
+	defaults = _original_defaults.duplicate()
+	self.defaults = parameter_defaults
+	count = defaults.count_start
 
 	root = node
 	node.add_child(self)
@@ -91,7 +101,25 @@ func _ready() -> void:
 
 
 func _dont_set(a) -> void:
-	assert(false, "XScene: do not set any property in XScene manually")
+	assert(false, "XScene: do not set any property, except defaults in XScene manually")
+
+
+# setting defaults Dictionary, any invalid keys or values will throw an error 
+func set_defaults(d: Dictionary) -> void:
+	for k in d:
+		assert( k in _original_defaults, "XScene.set_defaults: invalid key " + k as String)
+		assert(typeof(_original_defaults[k]) == typeof(d[k]), 
+		"XScene.set_defaults: value of key is of wrong type " + k as String + " " + d[k] as String)
+		if k == "method_add":
+			assert(ACTIVE <= d[k] and d[k] <= STOPPED, 
+			"XScene.set_defaults: method_add must be ACTIVE/HIDDEN/STOPPED " + d[k] as String)
+		if k == "method_remove":
+			assert(HIDDEN <= d[k] and d[k] <= FREE, 
+			"XScene.set_defaults: method_remove must be HIDDEN/STOPPED/FREE " + d[k] as String)
+		if k == "count_start":
+			assert(d[k] >= 0, 
+			"XScene.set_defaults: count_start must be >= 0 " + d[k] as String)
+		defaults[k] = d[k]
 
 
 func get_active() -> Array:
