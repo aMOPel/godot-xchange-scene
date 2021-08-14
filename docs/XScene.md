@@ -126,14 +126,18 @@ __WARNING__ this can be slow, read the __Caveats__ Section in the README.md
 var defaults: Dictionary
 ```
 
+- **Setter**: `set_defaults`
+
 Dictionary that hold the default values for parameters used in add/show/remove \
-__WARNING__ if you change the values to something not of its original type, \
-things will break \
+any invalid key or value assignment will throw an error to prevent misuse and cryptic errors \
+you can assign partial dictionaries and it will override as expected, leaving the other keys alone \
+eg `x.defaults = {deferred = true, method_add = 2}` \
+`x.defaults = x._original_defaults` to reset
 `deferred` = false, \
 `recursive_owner` = false, \
 `method_add` = ACTIVE, \
 `method_remove` = FREE, \
-`count_start` = 1
+`count_start` = 1 | This is only applied when passing it to the _init() of XScene
 
 ### count
 
@@ -142,21 +146,32 @@ var count: int
 ```
 
 automatically incrementing counter used as key when none is provided \
-starting value can be set in `defaults` and defaults to 1
+starting value can be set by passing `defaults` when initializing XScene \
+defaults to 1
 
 ## Method Descriptions
 
 ### \_init
 
 ```gdscript
-func _init(node: Node, synchronize: bool = false, parameter_defaults) -> void
+func _init(node: Node, synchronize: bool = false, parameter_defaults: Dictionary) -> void
 ```
 
 init for XScene \
 `node`: Node | determines `root` \
 `synchronize`: bool | default: false | wether to synchronize `scenes` with \
 external additions to the tree \
-`parameter_defaults`: Dictionary | default: `defaults`
+`parameter_defaults`: Dictionary | default: {} | this is the only way to change `count_start` \
+you can also pass partial dictionaries
+eg `x = XScene.new($Node, false, {deferred = true, count_start = 0})`
+
+### set\_defaults
+
+```gdscript
+func set_defaults(d: Dictionary) -> void
+```
+
+setting defaults Dictionary, any invalid keys or values will throw an error
 
 ### get\_active
 
