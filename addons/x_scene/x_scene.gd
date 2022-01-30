@@ -55,7 +55,7 @@ const _original_defaults := {
 	recursive_owner = false,
 	method_add = ACTIVE,
 	method_remove = FREE,
-	count_start = 1
+	count_start = 0
 }
 
 # automatically incrementing counter used as key when none is provided \
@@ -194,7 +194,7 @@ func xs(method = null) -> Array:
 # children of `scene` set the owner to `root`, this is useful for `pack_root()`
 func add_scene( new_scene, key = count, method := defaults.method_add, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
 	assert(
-		(key is int and key == count) or key is String,
+		key is int or key is String,
 		"XScene.add_scene: key must be count or String " + key as String
 	)
 	assert(
@@ -268,22 +268,22 @@ func show_scene(key = count, deferred := defaults.deferred) -> void:
 
 	match s.state:
 		ACTIVE:
-			print_debug(
-				(
-					"XScene.show_scene: scene already active, aborting "
-					+ key as String
-					+ " "
-					+ s.to_string()
-				)
-			)
+			# print_debug(
+			# 	(
+			# 		"XScene.show_scene: scene already active, aborting "
+			# 		+ key as String
+			# 		+ " "
+			# 	)
+			# 	, s
+			# )
 			return
 		HIDDEN:
 			if not s.scene is CanvasItem:
 				print_debug(
 					(
 						"XScene.show_scene: scene must inherit from CanvasItem to be hidden "
-						+ s.to_string()
 					)
+					, s
 				)
 				return
 			s.scene.show()
@@ -326,8 +326,8 @@ func remove_scene( key = count, method := defaults.method_remove, deferred := de
 				print_debug(
 					(
 						"XScene.remove_scene: scene must inherit from CanvasItem to be hidden "
-						+ s.to_string()
 					)
+					, s
 				)
 				return
 
@@ -383,8 +383,8 @@ func x_scene( key_to, key_from = null, method_from := defaults.method_remove, de
 func x_add_scene( scene_to, key_to = count, key_from = null, method_to := defaults.method_add, method_from := defaults.method_remove, deferred := defaults.deferred, recursive_owner := defaults.recursive_owner) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
-	add_scene(scene_to, key_to, method_to, deferred, recursive_owner)
 	remove_scene(key_from, method_from, deferred)
+	add_scene(scene_to, key_to, method_to, deferred, recursive_owner)
 
 
 # adds multiple scenes with `add_scene()` \
@@ -533,7 +533,7 @@ func _on_node_added(node: Node) -> void:
 	if _adding_scene:
 		return
 	if node.get_parent() == root:
-		scenes[count] = {
+		scenes[node.name] = {
 			scene = node,
 			state = (
 				HIDDEN
@@ -542,7 +542,7 @@ func _on_node_added(node: Node) -> void:
 			)
 		}
 
-		count += 1
+		# count += 1
 
 
 # print debug information
