@@ -2,14 +2,13 @@
 # given `Node`.
 class_name XScene
 
-# DONE: put non critical arguments in dict
 # TODO: consider doing it all with fsm
 # TODO: sort out when to assert, print_debug, push_error
 # TODO: make option for auto_sync to add keys by count or by node.name
 
-extends Node
-
 # warnings-disable
+
+extends Node
 
 # enum with the scene state \
 # `ACTIVE` = 0 uses `add_child()` \
@@ -21,13 +20,16 @@ enum { ACTIVE, HIDDEN, STOPPED, FREE }
 # Dictionary that holds all indexed scenes and their state \
 # has either `count` or String as keys \
 # Eg. {1:{scene:[Node2D:1235], state:0}, abra:{scene:[Node2D:1239], state:1}}
-var scenes := {} setget _dont_set, get_scenes
+var scenes := {} setget _dont_set, _get_scenes
+
 # Array of keys of active scenes
-var active := [] setget _dont_set, get_active
+var active := [] setget _dont_set, _get_active
+
 # Array of keys of hidden scenes
-var hidden := [] setget _dont_set, get_hidden
+var hidden := [] setget _dont_set, _get_hidden
+
 # Array of keys of stopped scenes
-var stopped := [] setget _dont_set, get_stopped
+var stopped := [] setget _dont_set, _get_stopped
 
 # the Node below which this class will manipulate scenes
 var root: Node setget _dont_set
@@ -51,10 +53,11 @@ var _removing_scene := false setget _dont_set
 # `recursive_owner` = false, \
 # `method_add` = ACTIVE, \
 # `method_remove` = FREE, \
-# `count_start` = 1 | This is only applied when passing it to the _init() of XScene
-var defaults: Dictionary setget set_defaults
+# `method_change` = ACTIVE, \
+# `count_start` = 1 | This is only applied when passing it to the `_init()` of XScene
+var defaults: Dictionary setget _set_defaults
 
-# constant original default values, used for comparison in `set_defaults()` and to reset
+# constant original default values, used for comparison in `_set_defaults()` and to reset
 const _original_defaults := {
 	deferred = false,
 	recursive_owner = false,
@@ -75,7 +78,7 @@ var count: int setget _dont_set
 # `synchronize`: bool | default: false | wether to synchronize `scenes` with \
 # external additions to the tree \
 # `parameter_defaults`: Dictionary | default: {} | this is the only way to change `count_start` \
-# you can also pass partial dictionaries
+# you can also pass partial dictionaries \
 # eg `x = XScene.new($Node, false, {deferred = true, count_start = 0})`
 func _init(node: Node, synchronize := false, parameter_defaults := {}) -> void:
 	assert(
@@ -114,7 +117,7 @@ func _dont_set(a) -> void:
 
 
 # setting defaults Dictionary, any invalid keys or values will throw an error 
-func set_defaults(d: Dictionary) -> void:
+func _set_defaults(d: Dictionary) -> void:
 	for k in d:
 		match k:
 			"method_add":
@@ -131,27 +134,27 @@ func set_defaults(d: Dictionary) -> void:
 				_check_type(k, d[k])
 			_:
 				print_debug(
-					"XScene.set_defaults: unrecognized key " + k as String
+					"XScene._set_defaults: unrecognized key " + k as String
 				)
 		defaults[k] = d[k]
 
 
-func get_active() -> Array:
+func _get_active() -> Array:
 	_check_scenes(ACTIVE)
 	return active
 
 
-func get_hidden() -> Array:
+func _get_hidden() -> Array:
 	_check_scenes(HIDDEN)
 	return hidden
 
 
-func get_stopped() -> Array:
+func _get_stopped() -> Array:
 	_check_scenes(STOPPED)
 	return stopped
 
 
-func get_scenes() -> Dictionary:
+func _get_scenes() -> Dictionary:
 	_check_scenes()
 	return scenes
 
@@ -166,6 +169,8 @@ func x(key) -> Node:
 		return null
 
 
+# returns the `data` Dictionary in of `key` in `scenes`
+# the `data` Dictionary is not used by this plugin, but can be used to associate data with a scene
 func d(key) -> Dictionary:
 	if _check_scene(key):
 		return scenes[key].data
@@ -218,7 +223,7 @@ func to_node(s) -> Node:
 	return n
 
 
-# sets undefined values to their respective values in `defaults`, `args.method` defaults to `defaults.method_add`
+# sets undefined values to their respective values in `defaults`
 func parse_args(args: Dictionary) -> Dictionary:
 	var d := {
 		method = defaults.method_add,
@@ -251,7 +256,9 @@ func parse_args(args: Dictionary) -> Dictionary:
 	return d
 
 
-# `args` takes `method_change` and `deferred` keys 
+# change state of `key` to any other state \
+# a wrapper around `show_scene()` and `remove_scene()` \
+# `args` takes `method_change` and `deferred` keys  \
 # these values default to their respective values in `defaults`
 func change_scene(key, args: Dictionary) -> void:
 	if not _check_scene(key):
@@ -283,10 +290,10 @@ func change_scene(key, args: Dictionary) -> void:
 # `STOPPED` only adds to `scenes` not to the tree \
 # `scene`: Node / PackagedScene \
 # `key`: `count` / String | default: `count` | key in `scenes` \
-# `method`: `ACTIVE` / `HIDDEN` / `STOPPED` | default: `ACTIVE` \
-# `deferred`: bool | default: false | whether to use call_deferred() for tree
+# `args.method_add`: `ACTIVE` / `HIDDEN` / `STOPPED` | default: `ACTIVE` \
+# `args.deferred`: bool | default: false | whether to use call_deferred() for tree
 # changes \
-# `recursive_owner`: bool | default: false | wether to recursively for all
+# `args.recursive_owner`: bool | default: false | wether to recursively for all
 # children of `scene` set the owner to `root`, this is useful for `pack_root()`
 func add_scene(new_scene, key = count, args := {}) -> void:
 	_check_type('key', key)
@@ -338,7 +345,7 @@ func add_scene(new_scene, key = count, args := {}) -> void:
 # if key is `HIDDEN` it uses `.show()` \
 # if key is `STOPPED` it uses `add_child()` and `.show()` \
 # `key` : int / String | default: `count` | key in `scenes` \
-# `deferred` : bool | default: false | whether to use `call_deferred()` for tree
+# `args.deferred` : bool | default: false | whether to use `call_deferred()` for tree
 # changes
 func show_scene(key = count, args := {}) -> void:
 	_check_type('key', key)
@@ -388,8 +395,8 @@ func show_scene(key = count, args := {}) -> void:
 # `STOPPED` uses `remove_child()` \
 # `FREE` uses `.free()` \
 # `key`: int / String | default: `count` | key in `scenes` \
-# `method`: `HIDDEN` / `STOPPED` / `FREE` | default: `FREE` \
-# `deferred`: bool | default: false | whether to use `call_deferred()` or
+# `args.method_remove`: `HIDDEN` / `STOPPED` / `FREE` | default: `FREE` \
+# `args.deferred`: bool | default: false | whether to use `call_deferred()` or
 # `queue_free()` for tree changes
 func remove_scene(key = count, args := {}) -> void:
 	_check_type('key', key)
@@ -437,8 +444,8 @@ func remove_scene(key = count, args := {}) -> void:
 			scenes.erase(key)
 
 
-# use `show_scene(key_to, deferred)`
-# and `remove_scene(key_from, method_from, deferred)` \
+# use `show_scene(key_to, args)`
+# and `remove_scene(key_from, args)` \
 # `key_from`: int / String | default: null | use `remove_scene()` with this key, \
 # if null, the last active scene will be used, mind that the order of `active`
 # only depends on the order of `scenes`
@@ -451,8 +458,8 @@ func x_scene(key_to, key_from = null, args := {}) -> void:
 	remove_scene(key_from, args)
 
 
-# use `add_scene(scene_to, key_to, method_to, deferred, recursive_owner)`
-# and `remove_scene(key_from, method_from, deferred)`
+# use `add_scene(scene_to, key_to, args)`
+# and `remove_scene(key_from, args)`
 # `key_to`: `count` / String | default: `count` | use `add_scene()` with this key \
 # `key_from`: int / String | default: null | use `remove_scene()` with this key, \
 # if null, the last active scene will be used, mind that the order of `active`
@@ -466,6 +473,11 @@ func x_add_scene(scene_to, key_to = count, key_from = null, args := {}) -> void:
 	add_scene(scene_to, key_to, args)
 
 
+# swap the Dictionaries in `scenes` for these two keys \
+# `key_from`: int / String | default: null | use `remove_scene()` with this key, \
+# if null, the last active scene will be used, mind that the order of `active`
+# only depends on the order of `scenes`
+# hiding/stopping and then showing scenes won't change the order 
 func swap_scene(key_to = count, key_from = null) -> void:
 	if key_from == null:
 		key_from = self.active[-1]
@@ -522,7 +534,7 @@ func remove_scenes(keys: Array, args := {}) -> void:
 
 # pack `root` into `filepath` using `PackedScene.pack()` and `ResourceSaver.save()` \
 # this works together with the `recursive_owner` parameter of `add_scene()` \
-# mind that the recursive_owner parameter is only necessary for scenes
+# mind that the `recursive_owner` parameter is only necessary for scenes
 # constructed from script, a scene constructed in the editor already works
 func pack_root(filepath) -> void:
 	var scene = PackedScene.new()
@@ -647,6 +659,9 @@ func debug() -> void:
 	print(s)
 
 
+# `arg` is possible key in `args`
+# `value` is its value
+# this checks if the `value` is of the right type and is valid for the key `arg` in `args`
 func _check_type(arg: String, value) -> void:
 	match arg:
 		'key':
