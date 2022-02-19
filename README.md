@@ -1,4 +1,4 @@
-![xchange-scene](https://raw.githubusercontent.com/aMOPel/godot-xchange-scene/main/crime-scene.png)
+![xchange-scene](./crime-scene.png)
 
 # xchange-scene
 
