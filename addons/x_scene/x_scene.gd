@@ -192,17 +192,23 @@ func xs(method = null) -> Array:
 	return a
 
 
-# uses PackedScene.instance() or Node.duplicate() on s
+# uses PackedScene.instance() or Node.duplicate() or Object.new() on s
 func to_node(s) -> Node:
 	var n: Node
 	if s is PackedScene:
 		n = s.instance()
 	elif s is Node:
 		n = s.duplicate()
+	elif s is Object:
+		n = s.new()
+		assert(
+			n is Node,
+			"XScene.to_node: if s is Object, s.new() has to be Node " + s.to_string()
+		)
 	else:
 		assert(
 			false,
-			"XScene.to_node: s must be PackedScene or Node " + s.to_string()
+			"XScene.to_node: s must be PackedScene or Node or Object" + s.to_string()
 		)
 	return n
 
