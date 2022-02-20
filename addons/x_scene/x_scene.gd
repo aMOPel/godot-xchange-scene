@@ -116,27 +116,11 @@ func _dont_set(a) -> void:
 	)
 
 
-# setting defaults Dictionary, any invalid keys or values will throw an error 
+# setting defaults Dictionary
 func _set_defaults(d: Dictionary) -> void:
 	for k in d:
-		match k:
-			"method_add":
-				_check_type(k, d[k])
-			"method_remove":
-				_check_type(k, d[k])
-			"method_change":
-				_check_type(k, d[k])
-			"count_start":
-				_check_type(k, d[k])
-			"deferred":
-				_check_type(k, d[k])
-			"recursive_owner":
-				_check_type(k, d[k])
-			_:
-				print_debug(
-					"XScene._set_defaults: unrecognized key " + k as String
-				)
-		defaults[k] = d[k]
+		if _check_type(k, d[k]):
+			defaults[k] = d[k]
 
 
 func _get_active() -> Array:
@@ -225,6 +209,8 @@ func to_node(s) -> Node:
 
 # sets undefined values to their respective values in `defaults`
 func parse_args(args: Dictionary) -> Dictionary:
+	if 'already_parsed' in args:
+		return args
 	var d := {
 		method_change = defaults.method_change,
 		method_add = defaults.method_add,
@@ -232,25 +218,10 @@ func parse_args(args: Dictionary) -> Dictionary:
 		deferred = defaults.deferred,
 		recursive_owner = defaults.recursive_owner,
 	}
+
 	for k in args:
-		_check_type(k, args[k])
-		match k:
-			'method_add':
-				d.method_add = args.method_add
-			'method_remove':
-				d.method_remove = args.method_remove
-			'method_change':
-				d.method_change = args.method_change
-			'deferred':
-				d.deferred = args.deferred
-			'recursive_owner':
-				d.recursive_owner = args.recursive_owner
-			'to_alternative':
-				d.to_alternative = args.recursive_owner
-			_:
-				print_debug(
-					'XScene.parse_args: unrecognized key ' + k as String
-				)
+		if _check_type(k, args[k]):
+			d[k] = args[k]
 	d.already_parsed = true
 	return d
 
@@ -265,10 +236,8 @@ func change_scene(key, args: Dictionary) -> void:
 		return
 
 	var d: Dictionary
-	if not 'already_parsed' in args:
-		d = parse_args(args)
-	else:
-		d = args
+	d = parse_args(args)
+
 	var s = scenes[key]
 
 	if s.state == d.method_change:
@@ -306,10 +275,7 @@ func add_scene(new_scene, key = count, args := {}) -> void:
 	)
 
 	var d: Dictionary
-	if not 'already_parsed' in args:
-		d = parse_args(args)
-	else:
-		d = args
+	d = parse_args(args)
 
 	var s: Node = to_node(new_scene)
 
@@ -351,10 +317,7 @@ func switch_alternative(alternative_key_to, alternative_key_from, key = count, a
 	var s = scenes[key]
 
 	var d: Dictionary
-	if not 'already_parsed' in args:
-		d = parse_args(args)
-	else:
-		d = args
+	d = parse_args(args)
 
 	if d.method_remove == FREE:
 		d.method_remove = STOPPED
@@ -388,10 +351,7 @@ func show_scene(key = count, args := {}) -> void:
 		return
 
 	var d: Dictionary
-	if not 'already_parsed' in args:
-		d = parse_args(args)
-	else:
-		d = args
+	d = parse_args(args)
 
 	var s = scenes[key]
 
@@ -443,10 +403,7 @@ func remove_scene(key = count, args := {}) -> void:
 		return
 
 	var d: Dictionary
-	if not 'already_parsed' in args:
-		d = parse_args(args)
-	else:
-		d = args
+	d = parse_args(args)
 
 	var s = scenes[key]
 
@@ -706,7 +663,7 @@ func debug() -> void:
 # `arg` is possible key in `args`
 # `value` is its value
 # this checks if the `value` is of the right type and is valid for the key `arg` in `args`
-func _check_type(arg: String, value) -> void:
+func _check_type(arg: String, value) -> bool:
 	match arg:
 		'key':
 			assert(
@@ -774,3 +731,5 @@ func _check_type(arg: String, value) -> void:
 			)
 		_:
 			print_debug('XScene._check_type: unrecognized key ' + arg as String)
+			return false
+	return true
